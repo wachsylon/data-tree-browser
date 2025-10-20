@@ -227,6 +227,11 @@ function setActive(path) {
   state.activePath = targetPath;
   state.highlightVarPath = node && node.type === "array" ? node.path : null;
   renderActive();
+  // Update hash to include active subgroup
+  if (state.baseUrl) {
+    const hash = `${encodeURIComponent(state.baseUrl)}|${encodeURIComponent(state.activePath)}`;
+    if (location.hash.slice(1) !== hash) location.hash = hash;
+  }
 }
 
 function handleKeydown(ev) {
@@ -272,8 +277,8 @@ async function loadStore(baseUrl) {
     state.activePath = "/";
     renderActive();
     setStatus("Loaded.");
-    // Update hash for deep-linking
-    const hash = encodeURIComponent(state.baseUrl);
+    // Update hash for deep-linking (store | path)
+    const hash = `${encodeURIComponent(state.baseUrl)}|${encodeURIComponent(state.activePath)}`;
     if (location.hash.slice(1) !== hash) location.hash = hash;
   } catch (err) {
     slideEl().innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
@@ -285,20 +290,36 @@ function init() {
   $("#loadBtn").addEventListener("click", onLoadClick);
   $("#zarrUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") onLoadClick(); });
   document.addEventListener("keydown", handleKeydown);
-  // Auto-load from hash if present
-  const hashed = location.hash ? decodeURIComponent(location.hash.slice(1)) : "";
-  if (hashed) {
-    const input = $("#zarrUrl");
-    if (input) input.value = hashed;
-    loadStore(hashed);
-  }
-  // React to hash changes (e.g., user pastes a different store)
-  window.addEventListener("hashchange", () => {
-    const h = location.hash ? decodeURIComponent(location.hash.slice(1)) : "";
-    if (h && h !== state.baseUrl) {
+  // Auto-load from hash if present: format is <store>|<path>
+  const initial = location.hash ? location.hash.slice(1) : "";
+  if (initial) {
+    const [storeEnc, pathEnc] = initial.split("|");
+    const store = storeEnc ? decodeURIComponent(storeEnc) : "";
+    const path = pathEnc ? decodeURIComponent(pathEnc) : "/";
+    if (store) {
       const input = $("#zarrUrl");
-      if (input) input.value = h;
-      loadStore(h);
+      if (input) input.value = store;
+      loadStore(store).then(() => {
+        if (path) { state.activePath = normalizePath(path); renderActive(); }
+      });
+    }
+  }
+  // React to hash changes (e.g., user pastes a different store or subgroup)
+  window.addEventListener("hashchange", () => {
+    const raw = location.hash ? location.hash.slice(1) : "";
+    if (!raw) return;
+    const [storeEnc, pathEnc] = raw.split("|");
+    const store = storeEnc ? decodeURIComponent(storeEnc) : "";
+    const path = pathEnc ? decodeURIComponent(pathEnc) : "/";
+    if (store && store !== state.baseUrl) {
+      const input = $("#zarrUrl");
+      if (input) input.value = store;
+      loadStore(store).then(() => {
+        if (path) { state.activePath = normalizePath(path); renderActive(); }
+      });
+    } else if (path && state.tree) {
+      state.activePath = normalizePath(path);
+      renderActive();
     }
   });
   renderActive();
@@ -549,28 +570,34 @@ function renderChunkViz(arr) {
   const chunks = Array.isArray(za.chunks) ? za.chunks : null;
   if (!shape.length || !chunks || chunks.length !== shape.length) return "";
   const counts = chunkCounts(shape, chunks);
-  // Only visualize 1D/2D for simplicity, else summary
+  // Visualize like Dask: show grid with counts and labels
+  const labelDims = (arr.attrs && Array.isArray(arr.attrs._ARRAY_DIMENSIONS)) ? arr.attrs._ARRAY_DIMENSIONS : shape.map((_, i) => `dim_${i}`);
+  const countsRounded = counts.map((c) => Math.ceil(c));
   if (counts.length === 1) {
-    const n = Math.ceil(counts[0]);
+    const n = countsRounded[0];
     const cap = Math.min(n, 200);
-    const cells = Array.from({ length: cap }, (_, i) => `<div class="chunk-cell" title="chunk ${i+1}/${n}"></div>`).join("");
+    const cells = Array.from({ length: cap }, () => `<div class="chunk-cell" title="1D chunk"></div>`).join("");
     const more = n > cap ? `<span class="small"> +${n-cap} more</span>` : "";
-    return `<div class="chunkviz chunkviz-1d" aria-label="chunks: ${n}">${cells}</div>${more}`;
+    const sizeLbl = `${labelDims[0]}: ${shape[0]} (chunks of ${chunks[0]}) → ${n}`;
+    return `<div class="chunkviz chunkviz-1d"><div class="axis-label">${escapeHtml(sizeLbl)}</div><div class="chunk-row">${cells}</div>${more}</div>`;
   }
   if (counts.length === 2) {
-    const [ny, nx] = counts.map((c) => Math.ceil(c));
+    const [ny, nx] = countsRounded;
+    const [dy, dx] = [labelDims[0], labelDims[1]];
     const maxX = Math.min(nx, 50);
     const maxY = Math.min(ny, 30);
+    const topLabel = `${dx}: ${shape[1]} (chunks of ${chunks[1]}) → ${nx}`;
+    const leftLabel = `${dy}: ${shape[0]} (chunks of ${chunks[0]}) → ${ny}`;
     let rows = "";
     for (let y = 0; y < maxY; y++) {
-      const rowCells = Array.from({ length: maxX }, (_, x) => `<div class="chunk-cell" title="chunk (${y+1},${x+1})/${ny},${nx}"></div>`).join("");
-      rows += `<div class="chunk-row">${rowCells}${nx>maxX?`<span class=\"small\"> +${nx-maxX} →</span>`:""}</div>`;
+      const rowCells = Array.from({ length: maxX }, () => `<div class="chunk-cell" title="2D chunk"></div>`).join("");
+      rows += `<div class="chunk-row">${rowCells}${nx>maxX?`<span class=\\"small\\"> +${nx-maxX} →</span>`:""}</div>`;
     }
     const moreY = ny > maxY ? `<div class="small">+${ny-maxY} rows more ↓</div>` : "";
-    return `<div class="chunkviz chunkviz-2d" aria-label="chunks: ${ny}x${nx}">${rows}${moreY}</div>`;
+    return `<div class="chunkviz chunkviz-2d"><div class="axis-label">${escapeHtml(topLabel)}</div>${rows}<div class="axis-label">${escapeHtml(leftLabel)}</div>${moreY}</div>`;
   }
   // Higher dims: show summary only
-  const summary = counts.map((c) => Math.ceil(c)).join("x");
+  const summary = countsRounded.join("x");
   return `<span class="small">chunks: ${escapeHtml(summary)}</span>`;
 }
 
