@@ -1,0 +1,50 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate default Zarr URL (.zmetadata reachable)
+        run: |
+          set -euo pipefail
+          URL_BASE="https://s3.eu-dkrz-1.dkrz.cloud/wrcp-hackathon/data/ICON/d3hp003.zarr"
+          URL="$URL_BASE/.zmetadata"
+          echo "Fetching $URL"
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          if [ "$code" -ge 400 ] || [ "$code" -lt 200 ]; then
+            echo "Default Zarr URL not reachable: HTTP $code"
+            exit 1
+          fi
+          echo "OK: $code"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

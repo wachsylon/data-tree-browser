@@ -1,0 +1,53 @@
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: #111827;
+  background: #f8fafc;
+}
+
+.app { display: grid; grid-template-rows: auto 1fr auto; min-height: 100%; }
+.app__header, .app__footer { padding: 12px 16px; background: #ffffff; border-bottom: 1px solid #e5e7eb; }
+.app__footer { border-top: 1px solid #e5e7eb; border-bottom: none; display: flex; justify-content: space-between; align-items: center; }
+
+.controls { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.controls input[type="url"] { flex: 1; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px; }
+.controls button { padding: 8px 12px; border-radius: 6px; border: 1px solid #111827; background: #111827; color: white; cursor: pointer; }
+.controls button:hover { background: #374151; border-color: #374151; }
+
+.hints { display: flex; gap: 12px; color: #6b7280; font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
+
+.stage { display: grid; place-items: center; padding: 24px; }
+.slide {
+  width: min(900px, 92vw);
+  min-height: 320px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.06);
+  padding: 20px 24px;
+  outline: none;
+}
+.slide:focus { box-shadow: 0 0 0 3px #93c5fd, 0 10px 20px rgba(0,0,0,0.06); }
+
+.placeholder { color: #6b7280; }
+
+.breadcrumb { color: #6b7280; font-size: 12px; margin-bottom: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node-title { font-weight: 600; font-size: 20px; margin: 6px 0 14px; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 6px 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13px; }
+.meta .label { color: #6b7280; }
+.meta .value { color: #111827; overflow-wrap: anywhere; }
+
+.section { margin-top: 16px; }
+.section h3 { margin: 0 0 8px; font-size: 14px; color: #374151; }
+.codeblock { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; overflow: auto; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; border: 1px solid #c7d2fe; }
+
+.navbar { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #6b7280; margin-top: 12px; }
+.navbar .dot { width: 6px; height: 6px; border-radius: 999px; background: #9ca3af; }
+
+.error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+
+.small { font-size: 12px; color: #6b7280; }

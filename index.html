@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Zarr DataTree Viewer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="app__header">
+      <h1>Zarr DataTree Viewer</h1>
+      <div class="controls">
+        <input id="zarrUrl" type="url" placeholder="Enter Zarr store base URL (consolidated .zmetadata required)" value="https://s3.eu-dkrz-1.dkrz.cloud/wrcp-hackathon/data/ICON/d3hp003.zarr" />
+        <button id="loadBtn">Load</button>
+      </div>
+      <div class="hints">
+        <span>Navigation: ↑ Parent</span>
+        <span>↓ First child</span>
+        <span>← Prev sibling</span>
+        <span>→ Next sibling</span>
+      </div>
+    </header>
+
+    <main class="stage">
+      <section id="slide" class="slide" tabindex="0" aria-live="polite">
+        <div class="placeholder">Enter a Zarr store URL and click Load.</div>
+      </section>
+    </main>
+
+    <footer class="app__footer">
+      <span id="status">Ready.</span>
+      <a href="https://github.com/manzt/zarrita" target="_blank" rel="noreferrer">Powered by Zarrita</a>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

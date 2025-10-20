@@ -1,0 +1,259 @@
+// Minimal, deployable browser app. No bundler required.
+// Uses Zarrita via CDN only for store path utilities if needed; tree built from consolidated .zmetadata.
+
+// Optional: try to import zarrita for URL helpers. If CDN fails, app still works.
+let zarrita; // eslint-disable-line no-unused-vars
+(async () => {
+  try {
+    zarrita = await import("https://esm.sh/zarrita@0.4?bundle");
+  } catch (e) {
+    // ignore; we don't strictly need zarrita to render metadata tree
+  }
+})();
+
+const $ = (sel) => document.querySelector(sel);
+const statusEl = () => $("#status");
+const slideEl = () => $("#slide");
+
+const state = {
+  baseUrl: "",
+  tree: null, // { pathMap: Map<string, Node>, root: Node }
+  activePath: "/",
+};
+
+/** Node shape
+ * {
+ *  path: string ("/" for root),
+ *  type: "group" | "array",
+ *  attrs?: object,
+ *  zarray?: object, // for arrays
+ *  children: string[] // child basenames sorted
+ * }
+ */
+
+function normalizeBase(url) {
+  // Ensure no trailing slash for consistent joins
+  return url.replace(/\/$/, "");
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url, { mode: "cors" });
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+async function loadZmetadata(baseUrl) {
+  const u = normalizeBase(baseUrl);
+  const metaUrl = `${u}/.zmetadata`;
+  setStatus(`Fetching .zmetadata from ${metaUrl} ...`);
+  const jm = await fetchJson(metaUrl);
+  if (!jm || typeof jm !== "object" || !jm.metadata) {
+    throw new Error(".zmetadata missing 'metadata' key. Ensure store is consolidated.");
+  }
+  return { base: u, consolidated: jm };
+}
+
+function buildTree(consolidated) {
+  const pathMap = new Map();
+  // Ensure root exists
+  ensureNode(pathMap, "/").type = "group";
+
+  const meta = consolidated.metadata;
+  for (const [key, value] of Object.entries(meta)) {
+    // keys are like "foo/.zgroup", "foo/bar/.zarray", "foo/.zattrs"
+    if (!key.endsWith(".zgroup") && !key.endsWith(".zarray") && !key.endsWith(".zattrs")) continue;
+    const path = "/" + key.replace(/\.z(group|array|attrs)$/i, "");
+    const node = ensureNode(pathMap, path);
+    if (key.endsWith(".zgroup")) node.type = "group";
+    if (key.endsWith(".zarray")) node.type = "array";
+    if (key.endsWith(".zattrs")) node.attrs = value || {};
+    if (key.endsWith(".zarray")) node.zarray = value || {};
+  }
+
+  // Infer missing parent groups and children lists
+  for (const p of pathMap.keys()) {
+    if (p === "/") continue;
+    const parent = dirname(p);
+    const base = basename(p);
+    const parentNode = ensureNode(pathMap, parent);
+    if (!parentNode.children.includes(base)) parentNode.children.push(base);
+  }
+  // Sort children for stable sibling navigation
+  for (const node of pathMap.values()) node.children.sort((a, b) => a.localeCompare(b));
+
+  return { pathMap, root: pathMap.get("/") };
+}
+
+function ensureNode(map, path) {
+  let node = map.get(path);
+  if (!node) {
+    node = { path, type: "group", attrs: {}, children: [] };
+    map.set(path, node);
+  }
+  return node;
+}
+
+function dirname(p) {
+  if (p === "/") return "/";
+  const parts = p.split("/").filter(Boolean);
+  parts.pop();
+  return "/" + parts.join("/");
+}
+function basename(p) {
+  if (p === "/") return "/";
+  const parts = p.split("/").filter(Boolean);
+  return parts[parts.length - 1] || "/";
+}
+
+function siblingsOf(tree, path) {
+  const parent = dirname(path);
+  const sibs = tree.pathMap.get(parent)?.children || [];
+  return { parent, list: sibs, index: Math.max(0, sibs.indexOf(basename(path))) };
+}
+
+function firstChildOf(tree, path) {
+  const node = tree.pathMap.get(path);
+  if (!node || !node.children.length) return null;
+  return join(path, node.children[0]);
+}
+
+function join(parent, childBase) {
+  return parent === "/" ? `/${childBase}` : `${parent}/${childBase}`;
+}
+
+function setStatus(msg) { statusEl().textContent = msg; }
+
+function renderActive() {
+  const { tree, activePath } = state;
+  const el = slideEl();
+  if (!tree) {
+    el.innerHTML = `<div class="placeholder">Enter a Zarr store URL and click Load.</div>`;
+    return;
+  }
+  const node = tree.pathMap.get(activePath);
+  if (!node) {
+    el.innerHTML = `<div class="error">Path not found: ${escapeHtml(activePath)}</div>`;
+    return;
+  }
+
+  const crumbs = breadcrumb(activePath)
+    .map((p, i, arr) => `<span>${escapeHtml(basename(p) || "/")}${i < arr.length - 1 ? " / " : ""}</span>`)
+    .join("");
+
+  const parts = [];
+  parts.push(`<div class="breadcrumb">${crumbs}</div>`);
+  parts.push(`<div class="node-title">${node.type === "array" ? "Array" : "Group"} <span class="badge">${escapeHtml(activePath)}</span></div>`);
+
+  // Meta like DataTree.__html__
+  const metaRows = [];
+  metaRows.push(["type", node.type]);
+  if (node.type === "array" && node.zarray) {
+    // shape, dtype, chunks
+    const za = node.zarray;
+    if (za.shape) metaRows.push(["shape", JSON.stringify(za.shape)]);
+    if (za.dtype) metaRows.push(["dtype", String(za.dtype)]);
+    if (za.chunks) metaRows.push(["chunks", JSON.stringify(za.chunks)]);
+    if (za.chunk_grid) metaRows.push(["chunk_grid", JSON.stringify(za.chunk_grid)]);
+    if (za.codecs) metaRows.push(["codecs", JSON.stringify(za.codecs)]);
+    if (za.compressor) metaRows.push(["compressor", JSON.stringify(za.compressor)]);
+  } else {
+    metaRows.push(["children", String(node.children.length)]);
+  }
+  if (node.attrs && Object.keys(node.attrs).length) metaRows.push(["attrs keys", Object.keys(node.attrs).sort().join(", ")]);
+
+  parts.push(`<div class="meta">${metaRows.map(([k, v]) => `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div>`).join("")}</div>`);
+
+  // Children preview
+  if (node.children.length) {
+    const items = node.children.map((name) => {
+      const p = join(node.path, name);
+      const t = state.tree.pathMap.get(p)?.type || "group";
+      return `<div><span class="badge">${t}</span> ${escapeHtml(name)}</div>`;
+    }).join("");
+    parts.push(`<div class="section"><h3>Children</h3><div class="codeblock">${items || "(none)"}</div></div>`);
+  }
+
+  // Attrs pretty JSON
+  if (node.attrs && Object.keys(node.attrs).length) {
+    parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
+  }
+
+  el.innerHTML = parts.join("");
+}
+
+function breadcrumb(path) {
+  const parts = path.split("/").filter(Boolean);
+  const acc = ["/"];
+  let cur = "";
+  for (const p of parts) {
+    cur = cur ? `${cur}/${p}` : `/${p}`;
+    acc.push(cur);
+  }
+  return acc;
+}
+
+function escapeHtml(v) {
+  return String(v)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function setActive(path) {
+  state.activePath = path;
+  renderActive();
+}
+
+function handleKeydown(ev) {
+  if (!state.tree) return;
+  const { key } = ev;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) ev.preventDefault();
+
+  if (key === "ArrowUp") {
+    const parent = dirname(state.activePath);
+    if (parent && parent !== state.activePath) setActive(parent);
+  } else if (key === "ArrowDown") {
+    const child = firstChildOf(state.tree, state.activePath);
+    if (child) setActive(child);
+  } else if (key === "ArrowLeft" || key === "ArrowRight") {
+    const { parent, list, index } = siblingsOf(state.tree, state.activePath);
+    if (!list.length) return;
+    const delta = key === "ArrowLeft" ? -1 : 1;
+    const nextIdx = (index + delta + list.length) % list.length;
+    const nextPath = join(parent, list[nextIdx]);
+    setActive(nextPath);
+  }
+}
+
+async function onLoadClick() {
+  const input = $("#zarrUrl");
+  const baseUrl = (input.value || "").trim();
+  if (!baseUrl) {
+    setStatus("Please enter a Zarr store base URL.");
+    input.focus();
+    return;
+  }
+  try {
+    slideEl().focus();
+    setStatus("Loading...");
+    const { consolidated } = await loadZmetadata(baseUrl);
+    state.baseUrl = normalizeBase(baseUrl);
+    state.tree = buildTree(consolidated);
+    state.activePath = "/";
+    renderActive();
+    setStatus("Loaded.");
+  } catch (err) {
+    slideEl().innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
+    setStatus("Error.");
+  }
+}
+
+function init() {
+  $("#loadBtn").addEventListener("click", onLoadClick);
+  $("#zarrUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") onLoadClick(); });
+  document.addEventListener("keydown", handleKeydown);
+  renderActive();
+}
+
+init();
