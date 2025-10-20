@@ -36,6 +36,15 @@ function normalizeBase(url) {
   return url.replace(/\/$/, "");
 }
 
+function normalizePath(p) {
+  if (!p) return "/";
+  // Ensure leading slash, collapse repeats, remove trailing slash (except root)
+  let s = p.replace(/\/+/g, "/");
+  if (!s.startsWith("/")) s = "/" + s;
+  if (s.length > 1) s = s.replace(/\/$/, "");
+  return s;
+}
+
 async function fetchJson(url) {
   const res = await fetch(url, { mode: "cors" });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
@@ -62,7 +71,7 @@ function buildTree(consolidated) {
   for (const [key, value] of Object.entries(meta)) {
     // keys are like "foo/.zgroup", "foo/bar/.zarray", "foo/.zattrs"
     if (!key.endsWith(".zgroup") && !key.endsWith(".zarray") && !key.endsWith(".zattrs")) continue;
-    const path = "/" + key.replace(/\.z(group|array|attrs)$/i, "");
+    const path = normalizePath("/" + key.replace(/\.z(group|array|attrs)$/i, ""));
     const node = ensureNode(pathMap, path);
     if (key.endsWith(".zgroup")) node.type = "group";
     if (key.endsWith(".zarray")) node.type = "array";
@@ -85,23 +94,26 @@ function buildTree(consolidated) {
 }
 
 function ensureNode(map, path) {
-  let node = map.get(path);
+  const np = normalizePath(path);
+  let node = map.get(np);
   if (!node) {
-    node = { path, type: "group", attrs: {}, children: [] };
-    map.set(path, node);
+    node = { path: np, type: "group", attrs: {}, children: [] };
+    map.set(np, node);
   }
   return node;
 }
 
 function dirname(p) {
-  if (p === "/") return "/";
-  const parts = p.split("/").filter(Boolean);
+  const np = normalizePath(p);
+  if (np === "/") return "/";
+  const parts = np.split("/").filter(Boolean);
   parts.pop();
   return "/" + parts.join("/");
 }
 function basename(p) {
-  if (p === "/") return "/";
-  const parts = p.split("/").filter(Boolean);
+  const np = normalizePath(p);
+  if (np === "/") return "/";
+  const parts = np.split("/").filter(Boolean);
   return parts[parts.length - 1] || "/";
 }
 
@@ -129,7 +141,9 @@ function firstChildOf(tree, path) {
 }
 
 function join(parent, childBase) {
-  return parent === "/" ? `/${childBase}` : `${parent}/${childBase}`;
+  const pp = normalizePath(parent);
+  const out = pp === "/" ? `/${childBase}` : `${pp}/${childBase}`;
+  return normalizePath(out);
 }
 
 function setStatus(msg) { statusEl().textContent = msg; }
@@ -266,8 +280,10 @@ init();
 function renderGroupLikeXarray(tree, grpNode) {
   let arrays = collectArrays(tree, grpNode, 0, 0); // only variables directly in this group
   if (arrays.length === 0) {
-    // Fallback: look one level deeper to avoid empty sections for container groups
-    arrays = collectArrays(tree, grpNode, 0, 1);
+    // Escalate search depth gradually to find variables in nested subgroups
+    for (let d = 1; d <= 4 && arrays.length === 0; d++) {
+      arrays = collectArrays(tree, grpNode, 0, d);
+    }
   }
 
   const dimsByVar = new Map();
@@ -364,7 +380,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${dataItems}</div></div>`);
 
-  // Child groups
+  // Child groups (always show immediate child groups)
   const groupChildren = grpNode.children
     .map((name) => tree.pathMap.get(join(grpNode.path, name)))
     .filter((n) => n && n.type === "group");
