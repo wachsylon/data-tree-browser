@@ -457,7 +457,7 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
+    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderVarAttrsDetails(arr)}</div>`
   ).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
@@ -470,7 +470,7 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Data variables (collapsible)
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
+    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderVarAttrsDetails(arr)}</div>`
   ).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
@@ -552,9 +552,26 @@ function formatVarAttrsInline(attrs = {}) {
   return parts.length ? `| ${parts.join(" ")}` : "";
 }
 
-function renderVarAttrsDetails(attrs = {}) {
-  if (!attrs || typeof attrs !== "object" || Object.keys(attrs).length === 0) return "";
-  const rows = Object.entries(attrs).map(([k, v]) => {
+function renderVarAttrsDetails(arr) {
+  if (!arr || typeof arr !== "object") return "";
+  const attrs = arr.attrs && typeof arr.attrs === "object" ? arr.attrs : {};
+  const za = arr.zarray || {};
+  const shape = Array.isArray(za.shape) ? za.shape : [];
+  const chunks = Array.isArray(za.chunks) ? za.chunks : [];
+  const counts = (shape.length && chunks.length === shape.length) ? chunkCounts(shape, chunks).map((c) => Math.ceil(c)) : [];
+  const synthesized = {
+    dtype: za.dtype ?? undefined,
+    shape: shape.length ? JSON.stringify(shape) : undefined,
+    chunks: chunks.length ? JSON.stringify(chunks) : undefined,
+    chunks_per_dim: counts.length ? counts.join("x") : undefined,
+    n_chunks_total: counts.length ? counts.reduce((a, b) => a * b, 1) : undefined,
+  };
+  const merged = { ...attrs };
+  for (const [k, v] of Object.entries(synthesized)) {
+    if (v !== undefined) merged[k] = v;
+  }
+  if (!Object.keys(merged).length) return "";
+  const rows = Object.entries(merged).map(([k, v]) => {
     let val;
     if (v == null) val = "null";
     else if (typeof v === "object") val = JSON.stringify(v);
