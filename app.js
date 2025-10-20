@@ -106,15 +106,26 @@ function basename(p) {
 }
 
 function siblingsOf(tree, path) {
+  // Operate among sibling GROUPS only
   const parent = dirname(path);
-  const sibs = tree.pathMap.get(parent)?.children || [];
-  return { parent, list: sibs, index: Math.max(0, sibs.indexOf(basename(path))) };
+  const sibNames = tree.pathMap.get(parent)?.children || [];
+  const sibGroups = sibNames
+    .map((name) => tree.pathMap.get(join(parent, name)))
+    .filter((n) => n && n.type === "group")
+    .map((n) => basename(n.path));
+  const idx = sibGroups.indexOf(basename(path));
+  return { parent, list: sibGroups, index: idx };
 }
 
 function firstChildOf(tree, path) {
   const node = tree.pathMap.get(path);
   if (!node || !node.children.length) return null;
-  return join(path, node.children[0]);
+  // Choose first GROUP child only
+  for (const name of node.children) {
+    const child = tree.pathMap.get(join(path, name));
+    if (child && child.type === "group") return child.path;
+  }
+  return null;
 }
 
 function join(parent, childBase) {
@@ -191,7 +202,10 @@ function escapeHtml(v) {
 }
 
 function setActive(path) {
-  state.activePath = path;
+  // Prevent setting arrays as active; keep only groups active
+  const node = state.tree?.pathMap.get(path);
+  const targetPath = node && node.type === "group" ? path : dirname(path);
+  state.activePath = targetPath;
   renderActive();
 }
 
@@ -209,6 +223,7 @@ function handleKeydown(ev) {
   } else if (key === "ArrowLeft" || key === "ArrowRight") {
     const { parent, list, index } = siblingsOf(state.tree, state.activePath);
     if (!list.length) return;
+    if (index < 0) return; // current not a group sibling (e.g., root) -> no-op
     const delta = key === "ArrowLeft" ? -1 : 1;
     const nextIdx = (index + delta + list.length) % list.length;
     const nextPath = join(parent, list[nextIdx]);
@@ -249,14 +264,13 @@ function init() {
 init();
 
 function renderGroupLikeXarray(tree, grpNode) {
-  const arrays = grpNode.children
-    .map((name) => tree.pathMap.get(join(grpNode.path, name)))
-    .filter((n) => n && n.type === "array");
+  const arrays = collectArrays(tree, grpNode, 0, 3); // search up to depth 3 for variables
 
   const dimsByVar = new Map();
   const sizesByVar = new Map();
   const attrsByVar = new Map();
   const allDims = new Set();
+  const coordCandidates = new Map(); // name -> size for 1D arrays named after themselves
 
   for (const arr of arrays) {
     const dims = inferArrayDims(arr);
@@ -264,6 +278,12 @@ function renderGroupLikeXarray(tree, grpNode) {
     sizesByVar.set(arr, Array.isArray(arr.zarray?.shape) ? arr.zarray.shape : []);
     attrsByVar.set(arr, arr.attrs || {});
     dims.forEach((d) => allDims.add(d));
+    // collect 1D arrays as potential coordinates
+    const name = basename(arr.path);
+    const shp = Array.isArray(arr.zarray?.shape) ? arr.zarray.shape : [];
+    if (shp.length === 1 && Number.isFinite(shp[0])) {
+      coordCandidates.set(name, shp[0]);
+    }
   }
 
   // Build dim -> size mapping (prefer coords of same name, else first occurrence)
@@ -283,14 +303,39 @@ function renderGroupLikeXarray(tree, grpNode) {
     const shape = sizesByVar.get(arr) || [];
     if (dims.length === 1 && dims[0] === name && Number.isFinite(shape[0])) dimSizes.set(name, shape[0]);
   }
+  // If no explicit dim names, derive from 1D coord candidates
+  if (dimSizes.size === 0 && coordCandidates.size > 0) {
+    for (const [n, sz] of coordCandidates.entries()) dimSizes.set(n, sz);
+  }
+
+  // If variable has no _ARRAY_DIMENSIONS, infer names by matching axis sizes to known coord sizes
+  for (const arr of arrays) {
+    const dims = dimsByVar.get(arr) || [];
+    if (!dims.length || dims.every((d) => d.startsWith("dim_"))) {
+      const shape = sizesByVar.get(arr) || [];
+      const inferred = [];
+      const used = new Set();
+      for (const ax of shape) {
+        let match = null;
+        for (const [dn, sz] of dimSizes.entries()) {
+          if (sz === ax && !used.has(dn)) { match = dn; break; }
+        }
+        inferred.push(match || `dim_${inferred.length}`);
+        if (match) used.add(match);
+      }
+      dimsByVar.set(arr, inferred);
+      inferred.forEach((d) => allDims.add(d));
+    }
+  }
 
   const coords = [];
   const dataVars = [];
   for (const arr of arrays) {
     const name = basename(arr.path);
     const dims = dimsByVar.get(arr) || [];
-    const isCoord = dims.length === 1 && allDims.has(name);
-    (isCoord ? coords : dataVars).push({ arr, name, dims, shape: sizesByVar.get(arr) || [], attrs: attrsByVar.get(arr) || {} });
+    const shape = sizesByVar.get(arr) || [];
+    const isCoord = (shape.length === 1 && coordCandidates.has(name)) || (dims.length === 1 && (dims[0] === name || coordCandidates.has(name)));
+    (isCoord ? coords : dataVars).push({ arr, name, dims, shape, attrs: attrsByVar.get(arr) || {} });
   }
 
   const dimList = Array.from(allDims);
@@ -302,13 +347,13 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Coordinates
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">coord</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
+    `<div><span class="badge">coord</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Coordinates</h3><div class="codeblock">${coordItems}</div></div>`);
 
   // Data variables
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">data</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
+    `<div><span class="badge">data</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${dataItems}</div></div>`);
 
@@ -326,6 +371,22 @@ function renderGroupLikeXarray(tree, grpNode) {
   const html = sections.join("");
   queueMicrotask(() => bindNavLinks());
   return html;
+}
+
+function collectArrays(tree, grpNode, depth = 0, maxDepth = 1) {
+  const found = [];
+  // arrays directly under this group
+  for (const name of grpNode.children) {
+    const n = tree.pathMap.get(join(grpNode.path, name));
+    if (n && n.type === "array") found.push(n);
+  }
+  if (depth < maxDepth) {
+    for (const name of grpNode.children) {
+      const n = tree.pathMap.get(join(grpNode.path, name));
+      if (n && n.type === "group") found.push(...collectArrays(tree, n, depth + 1, maxDepth));
+    }
+  }
+  return found;
 }
 
 function inferArrayDims(arr) {
@@ -346,8 +407,14 @@ function bindNavLinks() {
   document.querySelectorAll("a.navlink[data-path]").forEach((a) => {
     a.addEventListener("click", (e) => {
       e.preventDefault();
-      const p = a.getAttribute("data-path");
-      if (p) setActive(p);
+      // Do not navigate to array as active; keep group active.
+      // In future we could show an inline variable detail.
     });
   });
+}
+
+function formatVarAttrsInline(attrs = {}) {
+  const keys = ["standard_name", "long_name", "units"];
+  const parts = keys.map((k) => attrs && attrs[k] ? `${k}=${escapeHtml(String(attrs[k]))}` : null).filter(Boolean);
+  return parts.length ? `| ${parts.join(" ")}` : "";
 }
