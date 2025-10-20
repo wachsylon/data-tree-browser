@@ -1,7 +1,7 @@
 {
-  "name": "zarr-tree-viewer",
+  "name": "xarray-datatree-viewer",
   "version": "1.0.0",
-  "description": "Interactive Zarr data tree viewer using Zarrita",
+  "description": "Interactive Xarray data tree viewer using Zarrita",
   "main": "app.js",
   "scripts": {
     "start": "vite",
