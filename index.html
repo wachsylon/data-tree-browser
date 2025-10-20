@@ -9,7 +9,7 @@
 <body>
   <div class="app">
     <header class="app__header">
-      <h1>Zarr DataTree Viewer</h1>
+      <h1>Xarray DataTree Viewer using open Zarr stores</h1>
       <div class="controls">
         <input id="zarrUrl" type="url" placeholder="Enter Zarr store base URL (consolidated .zmetadata required)" value="https://s3.eu-dkrz-1.dkrz.cloud/wrcp-hackathon/data/ICON/d3hp003.zarr" />
         <button id="loadBtn">Load</button>
@@ -22,11 +22,16 @@
       </div>
     </header>
 
-    <main class="stage">
-      <section id="slide" class="slide" tabindex="0" aria-live="polite">
-        <div class="placeholder">Enter a Zarr store URL and click Load.</div>
-      </section>
-    </main>
+    <div class="content">
+      <aside class="sidebar" id="sidebar" aria-label="Hierarchy">
+        <div class="sidebar__placeholder small">Load a store to view the hierarchy</div>
+      </aside>
+      <main class="stage">
+        <section id="slide" class="slide" tabindex="0" aria-live="polite">
+          <div class="placeholder">Enter a Zarr store URL and click Load.</div>
+        </section>
+      </main>
+    </div>
 
     <footer class="app__footer">
       <span id="status">Ready.</span>

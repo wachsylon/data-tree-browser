@@ -18,6 +18,15 @@ body {
 
 .hints { display: flex; gap: 12px; color: #6b7280; font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
 
+.content { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 16px; }
+.sidebar { background: white; border-right: 1px solid #e5e7eb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; overflow: auto; height: calc(100vh - 180px); }
+.sidebar__placeholder { padding: 8px; }
+.tree { list-style: none; padding-left: 0; margin: 0; font-size: 14px; }
+.tree li { margin: 2px 0; }
+.tree a { color: #111827; text-decoration: none; padding: 2px 4px; border-radius: 6px; display: inline-block; }
+.tree a:hover { background: #f3f4f6; }
+.tree .active { background: #e0f2fe; border: 1px solid #93c5fd; }
+.tree .badge { margin-right: 4px; }
 .stage { display: grid; place-items: center; padding: 24px; }
 .slide {
   width: min(900px, 92vw);

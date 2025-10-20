@@ -14,11 +14,13 @@ let zarrita; // eslint-disable-line no-unused-vars
 const $ = (sel) => document.querySelector(sel);
 const statusEl = () => $("#status");
 const slideEl = () => $("#slide");
+const sidebarEl = () => $("#sidebar");
 
 const state = {
   baseUrl: "",
   tree: null, // { pathMap: Map<string, Node>, root: Node }
   activePath: "/",
+  highlightVarPath: null,
 };
 
 /** Node shape
@@ -154,11 +156,13 @@ function renderActive() {
   try {
     if (!tree) {
       el.innerHTML = `<div class="placeholder">Enter a Zarr store URL and click Load.</div>`;
+      renderSidebar();
       return;
     }
     const node = tree.pathMap.get(activePath);
     if (!node) {
       el.innerHTML = `<div class="error">Path not found: ${escapeHtml(activePath)}</div>`;
+      renderSidebar();
       return;
     }
 
@@ -191,6 +195,7 @@ function renderActive() {
   const groupView = renderGroupLikeXarray(state.tree, node);
   parts.push(groupView);
   el.innerHTML = parts.join("");
+  renderSidebar();
   } catch (e) {
     el.innerHTML = `<div class="error">Render error: ${escapeHtml(e.message || String(e))}</div>`;
   }
@@ -220,6 +225,7 @@ function setActive(path) {
   const node = state.tree?.pathMap.get(path);
   const targetPath = node && node.type === "group" ? path : dirname(path);
   state.activePath = targetPath;
+  state.highlightVarPath = node && node.type === "array" ? node.path : null;
   renderActive();
 }
 
@@ -276,6 +282,47 @@ function init() {
 }
 
 init();
+
+function renderSidebar() {
+  const el = sidebarEl();
+  if (!el) return;
+  if (!state.tree) {
+    el.innerHTML = `<div class="sidebar__placeholder small">Load a store to view the hierarchy</div>`;
+    return;
+  }
+  const html = `<ul class="tree">${renderTreeNode(state.tree, "/")}</ul>`;
+  el.innerHTML = html;
+  // Bind clicks
+  el.querySelectorAll("a[data-path]").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const p = a.getAttribute("data-path");
+      if (!p) return;
+      setActive(p);
+    });
+  });
+  // Mark active
+  const active = el.querySelector(`a[data-path="${CSS.escape(state.activePath)}"]`);
+  if (active) active.classList.add("active");
+}
+
+function renderTreeNode(tree, path) {
+  const node = tree.pathMap.get(normalizePath(path));
+  if (!node) return "";
+  const isGroup = node.type === "group";
+  const label = path === "/" ? "/" : basename(path);
+  let li = `<li>`;
+  li += `<a href="#" data-path="${escapeHtml(node.path)}">${isGroup ? `<span class=\"badge\">grp</span>` : `<span class=\"badge\">arr</span>`}${escapeHtml(label)}</a>`;
+  if (isGroup && node.children && node.children.length) {
+    const kids = node.children.map((name) => {
+      const childPath = join(node.path, name);
+      return renderTreeNode(tree, childPath);
+    }).join("");
+    if (kids) li += `<ul>${kids}</ul>`;
+  }
+  li += `</li>`;
+  return li;
+}
 
 function renderGroupLikeXarray(tree, grpNode) {
   const arrays = collectArrays(tree, grpNode, 0, 0); // only variables directly in this group
@@ -364,8 +411,8 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">coord</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
-  ).join("") || `<div class="small">(none)</div>`;
+    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
+  ).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
@@ -377,8 +424,8 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Data variables (collapsible)
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">data</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
-  ).join("") || `<div class="small">(none)</div>`;
+    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
+  ).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
