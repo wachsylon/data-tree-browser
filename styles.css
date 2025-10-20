@@ -68,3 +68,22 @@ body {
 .chunkviz-2d .chunk-row { display: grid; grid-auto-flow: column; gap: 2px; align-items: center; }
 .chunk-cell { width: 8px; height: 8px; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 2px; }
 .varname { font-weight: 600; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .content { display: block; padding: 12px; }
+  .sidebar { height: auto; max-height: 40vh; margin-bottom: 12px; }
+  .stage { padding: 0; }
+  .slide { width: 100%; padding: 16px; }
+  .hints { font-size: 11px; gap: 8px; }
+  .controls { flex-direction: column; align-items: stretch; }
+  .controls button { width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .app__header, .app__footer { padding: 10px 12px; }
+  .slide { padding: 12px 14px; border-radius: 10px; }
+  .codeblock { font-size: 11px; }
+  .badge { font-size: 11px; padding: 1px 6px; }
+  .tree { font-size: 13px; }
+}
