@@ -51,3 +51,11 @@ body {
 .error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
 
 .small { font-size: 12px; color: #6b7280; }
+
+/* Chunk visualization */
+.chunkviz { display: inline-block; margin-left: 8px; vertical-align: middle; }
+.chunkviz-1d { display: inline-grid; grid-auto-flow: column; gap: 2px; }
+.chunkviz-2d { display: grid; gap: 2px; }
+.chunkviz-2d .chunk-row { display: grid; grid-auto-flow: column; gap: 2px; align-items: center; }
+.chunk-cell { width: 8px; height: 8px; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 2px; }
+.varname { font-weight: 600; }

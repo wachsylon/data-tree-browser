@@ -278,13 +278,7 @@ function init() {
 init();
 
 function renderGroupLikeXarray(tree, grpNode) {
-  let arrays = collectArrays(tree, grpNode, 0, 0); // only variables directly in this group
-  if (arrays.length === 0) {
-    // Escalate search depth gradually to find variables in nested subgroups
-    for (let d = 1; d <= 4 && arrays.length === 0; d++) {
-      arrays = collectArrays(tree, grpNode, 0, d);
-    }
-  }
+  const arrays = collectArrays(tree, grpNode, 0, 0); // only variables directly in this group
 
   const dimsByVar = new Map();
   const sizesByVar = new Map();
@@ -370,13 +364,13 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Coordinates
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">coord</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)}</div>`
+    `<div><span class="badge">coord</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Coordinates</h3><div class="codeblock">${coordItems}</div></div>`);
 
   // Data variables
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">data</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)}</div>`
+    `<div><span class="badge">data</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${dataItems}</div></div>`);
 
@@ -440,4 +434,39 @@ function formatVarAttrsInline(attrs = {}) {
   const keys = ["standard_name", "long_name", "units"];
   const parts = keys.map((k) => attrs && attrs[k] ? `${k}=${escapeHtml(String(attrs[k]))}` : null).filter(Boolean);
   return parts.length ? `| ${parts.join(" ")}` : "";
+}
+
+function renderChunkViz(arr) {
+  const za = arr.zarray || {};
+  const shape = Array.isArray(za.shape) ? za.shape : [];
+  const chunks = Array.isArray(za.chunks) ? za.chunks : null;
+  if (!shape.length || !chunks || chunks.length !== shape.length) return "";
+  const counts = chunkCounts(shape, chunks);
+  // Only visualize 1D/2D for simplicity, else summary
+  if (counts.length === 1) {
+    const n = Math.ceil(counts[0]);
+    const cap = Math.min(n, 200);
+    const cells = Array.from({ length: cap }, (_, i) => `<div class="chunk-cell" title="chunk ${i+1}/${n}"></div>`).join("");
+    const more = n > cap ? `<span class="small"> +${n-cap} more</span>` : "";
+    return `<div class="chunkviz chunkviz-1d" aria-label="chunks: ${n}">${cells}</div>${more}`;
+  }
+  if (counts.length === 2) {
+    const [ny, nx] = counts.map((c) => Math.ceil(c));
+    const maxX = Math.min(nx, 50);
+    const maxY = Math.min(ny, 30);
+    let rows = "";
+    for (let y = 0; y < maxY; y++) {
+      const rowCells = Array.from({ length: maxX }, (_, x) => `<div class="chunk-cell" title="chunk (${y+1},${x+1})/${ny},${nx}"></div>`).join("");
+      rows += `<div class="chunk-row">${rowCells}${nx>maxX?`<span class=\"small\"> +${nx-maxX} →</span>`:""}</div>`;
+    }
+    const moreY = ny > maxY ? `<div class="small">+${ny-maxY} rows more ↓</div>` : "";
+    return `<div class="chunkviz chunkviz-2d" aria-label="chunks: ${ny}x${nx}">${rows}${moreY}</div>`;
+  }
+  // Higher dims: show summary only
+  const summary = counts.map((c) => Math.ceil(c)).join("x");
+  return `<span class="small">chunks: ${escapeHtml(summary)}</span>`;
+}
+
+function chunkCounts(shape, chunks) {
+  return shape.map((s, i) => (chunks[i] ? Math.ceil(s / chunks[i]) : 1));
 }
