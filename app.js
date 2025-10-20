@@ -259,6 +259,10 @@ async function onLoadClick() {
     input.focus();
     return;
   }
+  await loadStore(baseUrl);
+}
+
+async function loadStore(baseUrl) {
   try {
     slideEl().focus();
     setStatus("Loading...");
@@ -268,6 +272,9 @@ async function onLoadClick() {
     state.activePath = "/";
     renderActive();
     setStatus("Loaded.");
+    // Update hash for deep-linking
+    const hash = encodeURIComponent(state.baseUrl);
+    if (location.hash.slice(1) !== hash) location.hash = hash;
   } catch (err) {
     slideEl().innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
     setStatus("Error.");
@@ -278,6 +285,22 @@ function init() {
   $("#loadBtn").addEventListener("click", onLoadClick);
   $("#zarrUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") onLoadClick(); });
   document.addEventListener("keydown", handleKeydown);
+  // Auto-load from hash if present
+  const hashed = location.hash ? decodeURIComponent(location.hash.slice(1)) : "";
+  if (hashed) {
+    const input = $("#zarrUrl");
+    if (input) input.value = hashed;
+    loadStore(hashed);
+  }
+  // React to hash changes (e.g., user pastes a different store)
+  window.addEventListener("hashchange", () => {
+    const h = location.hash ? decodeURIComponent(location.hash.slice(1)) : "";
+    if (h && h !== state.baseUrl) {
+      const input = $("#zarrUrl");
+      if (input) input.value = h;
+      loadStore(h);
+    }
+  });
   renderActive();
 }
 
