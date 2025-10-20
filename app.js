@@ -362,17 +362,31 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dimRows = dimList.length ? dimList.map((d) => `<div class="label">${escapeHtml(d)}</div><div class="value">${escapeHtml(dimSizes.get(d) ?? "?")}</div>`).join("") : `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Dimensions</h3><div class="meta">${dimRows}</div></div>`);
 
-  // Coordinates
+  // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
     `<div><span class="badge">coord</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
-  sections.push(`<div class="section"><h3>Coordinates</h3><div class="codeblock">${coordItems}</div></div>`);
+  sections.push(`
+    <div class="section">
+      <details open>
+        <summary>Coordinates</summary>
+        <div class="codeblock">${coordItems}</div>
+      </details>
+    </div>
+  `);
 
-  // Data variables
+  // Data variables (collapsible)
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
     `<div><span class="badge">data</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
-  sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${dataItems}</div></div>`);
+  sections.push(`
+    <div class="section">
+      <details open>
+        <summary>Data variables</summary>
+        <div class="codeblock">${dataItems}</div>
+      </details>
+    </div>
+  `);
 
   // Child groups (always show immediate child groups)
   const groupChildren = grpNode.children
@@ -381,9 +395,18 @@ function renderGroupLikeXarray(tree, grpNode) {
   const groupItems = groupChildren.map((g) => `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Groups</h3><div class="codeblock">${groupItems}</div></div>`);
 
-  if (grpNode.attrs && Object.keys(grpNode.attrs).length) {
-    sections.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(grpNode.attrs, null, 2))}</pre></div>`);
-  }
+  // Attributes (collapsible; show even if none)
+  const attrsBlock = grpNode.attrs && Object.keys(grpNode.attrs).length
+    ? `<pre class="codeblock">${escapeHtml(JSON.stringify(grpNode.attrs, null, 2))}</pre>`
+    : `<div class="codeblock"><div class="small">(none)</div></div>`;
+  sections.push(`
+    <div class="section">
+      <details>
+        <summary>Attributes</summary>
+        ${attrsBlock}
+      </details>
+    </div>
+  `);
 
   const html = sections.join("");
   queueMicrotask(() => bindNavLinks());
