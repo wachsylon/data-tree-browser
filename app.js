@@ -142,42 +142,28 @@ function renderActive() {
 
   const parts = [];
   parts.push(`<div class="breadcrumb">${crumbs}</div>`);
-  parts.push(`<div class="node-title">${node.type === "array" ? "Array" : "Group"} <span class="badge">${escapeHtml(activePath)}</span></div>`);
-
-  // Meta like DataTree.__html__
-  const metaRows = [];
-  metaRows.push(["type", node.type]);
-  if (node.type === "array" && node.zarray) {
-    // shape, dtype, chunks
-    const za = node.zarray;
+  if (node.type === "array") {
+    parts.push(`<div class="node-title">Array <span class="badge">${escapeHtml(activePath)}</span></div>`);
+    const metaRows = [];
+    metaRows.push(["type", "array"]);
+    const za = node.zarray || {};
     if (za.shape) metaRows.push(["shape", JSON.stringify(za.shape)]);
     if (za.dtype) metaRows.push(["dtype", String(za.dtype)]);
     if (za.chunks) metaRows.push(["chunks", JSON.stringify(za.chunks)]);
     if (za.chunk_grid) metaRows.push(["chunk_grid", JSON.stringify(za.chunk_grid)]);
     if (za.codecs) metaRows.push(["codecs", JSON.stringify(za.codecs)]);
     if (za.compressor) metaRows.push(["compressor", JSON.stringify(za.compressor)]);
-  } else {
-    metaRows.push(["children", String(node.children.length)]);
-  }
-  if (node.attrs && Object.keys(node.attrs).length) metaRows.push(["attrs keys", Object.keys(node.attrs).sort().join(", ")]);
-
-  parts.push(`<div class="meta">${metaRows.map(([k, v]) => `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div>`).join("")}</div>`);
-
-  // Children preview
-  if (node.children.length) {
-    const items = node.children.map((name) => {
-      const p = join(node.path, name);
-      const t = state.tree.pathMap.get(p)?.type || "group";
-      return `<div><span class="badge">${t}</span> ${escapeHtml(name)}</div>`;
-    }).join("");
-    parts.push(`<div class="section"><h3>Children</h3><div class="codeblock">${items || "(none)"}</div></div>`);
+    parts.push(`<div class="meta">${metaRows.map(([k, v]) => `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div>`).join("")}</div>`);
+    if (node.attrs && Object.keys(node.attrs).length) {
+      parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
+    }
+    el.innerHTML = parts.join("");
+    return;
   }
 
-  // Attrs pretty JSON
-  if (node.attrs && Object.keys(node.attrs).length) {
-    parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
-  }
-
+  parts.push(`<div class="node-title">Group <span class="badge">${escapeHtml(activePath)}</span></div>`);
+  const groupView = renderGroupLikeXarray(state.tree, node);
+  parts.push(groupView);
   el.innerHTML = parts.join("");
 }
 
@@ -257,3 +243,84 @@ function init() {
 }
 
 init();
+
+function renderGroupLikeXarray(tree, grpNode) {
+  const arrays = grpNode.children
+    .map((name) => tree.pathMap.get(join(grpNode.path, name)))
+    .filter((n) => n && n.type === "array");
+
+  const dimsByVar = new Map();
+  const sizesByVar = new Map();
+  const attrsByVar = new Map();
+  const allDims = new Set();
+
+  for (const arr of arrays) {
+    const dims = inferArrayDims(arr);
+    dimsByVar.set(arr, dims);
+    sizesByVar.set(arr, Array.isArray(arr.zarray?.shape) ? arr.zarray.shape : []);
+    attrsByVar.set(arr, arr.attrs || {});
+    dims.forEach((d) => allDims.add(d));
+  }
+
+  const coords = [];
+  const dataVars = [];
+  for (const arr of arrays) {
+    const name = basename(arr.path);
+    const dims = dimsByVar.get(arr) || [];
+    const isCoord = dims.length === 1 && allDims.has(name);
+    (isCoord ? coords : dataVars).push({ arr, name, dims, shape: sizesByVar.get(arr) || [], attrs: attrsByVar.get(arr) || {} });
+  }
+
+  const dimList = Array.from(allDims);
+
+  const sections = [];
+  if (dimList.length) {
+    sections.push(`<div class="section"><h3>Dimensions</h3><div class="meta">${dimList.map((d) => `<div class="label">name</div><div class="value">${escapeHtml(d)}</div>`).join("")}</div></div>`);
+  }
+
+  if (coords.length) {
+    const items = coords.map(({ name, dims, shape, arr }) =>
+      `<div><span class="badge">coord</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
+    ).join("");
+    sections.push(`<div class="section"><h3>Coordinates</h3><div class="codeblock">${items}</div></div>`);
+  }
+
+  if (dataVars.length) {
+    const items = dataVars.map(({ name, dims, shape, arr }) =>
+      `<div><span class="badge">data</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
+    ).join("");
+    sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${items}</div></div>`);
+  }
+
+  if (grpNode.attrs && Object.keys(grpNode.attrs).length) {
+    sections.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(grpNode.attrs, null, 2))}</pre></div>`);
+  }
+
+  const html = sections.join("");
+  queueMicrotask(() => bindNavLinks());
+  return html;
+}
+
+function inferArrayDims(arr) {
+  const attrs = arr.attrs || {};
+  const dimsAttr = attrs["_ARRAY_DIMENSIONS"]; // common with xarray zarr
+  if (Array.isArray(dimsAttr) && dimsAttr.every((d) => typeof d === "string")) return dimsAttr;
+  const rank = Array.isArray(arr.zarray?.shape) ? arr.zarray.shape.length : 0;
+  const fallback = Array.from({ length: rank }, (_, i) => `dim_${i}`);
+  return fallback;
+}
+
+function formatDimsWithSizes(dims, shape) {
+  const pairs = dims.map((d, i) => `${d}: ${shape[i] ?? "?"}`);
+  return `(${pairs.join(", ")})`;
+}
+
+function bindNavLinks() {
+  document.querySelectorAll("a.navlink[data-path]").forEach((a) => {
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      const p = a.getAttribute("data-path");
+      if (p) setActive(p);
+    });
+  });
+}
