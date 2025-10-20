@@ -488,9 +488,9 @@ function renderGroupLikeXarray(tree, grpNode) {
   const groupItems = groupChildren.map((g) => `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("") || `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>Groups</h3><div class="codeblock">${groupItems}</div></div>`);
 
-  // Attributes (collapsible; show even if none)
+  // Attributes (collapsible; show even if none) rendered as key=value lines
   const attrsBlock = grpNode.attrs && Object.keys(grpNode.attrs).length
-    ? `<pre class="codeblock">${escapeHtml(JSON.stringify(grpNode.attrs, null, 2))}</pre>`
+    ? renderKeyValueMeta(grpNode.attrs)
     : `<div class="codeblock"><div class="small">(none)</div></div>`;
   sections.push(`
     <div class="section">
@@ -540,8 +540,8 @@ function bindNavLinks() {
   document.querySelectorAll("a.navlink[data-path]").forEach((a) => {
     a.addEventListener("click", (e) => {
       e.preventDefault();
-      // Do not navigate to array as active; keep group active.
-      // In future we could show an inline variable detail.
+      const p = a.getAttribute("data-path");
+      if (p) setActive(p);
     });
   });
 }
@@ -562,6 +562,17 @@ function renderVarAttrsDetails(attrs = {}) {
     return `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(val)}</div>`;
   }).join("");
   return `<details class="var-attrs"><summary>Attributes</summary><div class="meta small">${rows}</div></details>`;
+}
+
+function renderKeyValueMeta(obj = {}) {
+  const rows = Object.entries(obj).map(([k, v]) => {
+    let val;
+    if (v == null) val = "null";
+    else if (typeof v === "object") val = JSON.stringify(v);
+    else val = String(v);
+    return `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(val)}</div>`;
+  }).join("");
+  return `<div class="codeblock"><div class="meta small">${rows}</div></div>`;
 }
 
 function renderChunkViz(arr) {
