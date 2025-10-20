@@ -264,7 +264,11 @@ function init() {
 init();
 
 function renderGroupLikeXarray(tree, grpNode) {
-  const arrays = collectArrays(tree, grpNode, 0, 3); // search up to depth 3 for variables
+  let arrays = collectArrays(tree, grpNode, 0, 0); // only variables directly in this group
+  if (arrays.length === 0) {
+    // Fallback: look one level deeper to avoid empty sections for container groups
+    arrays = collectArrays(tree, grpNode, 0, 1);
+  }
 
   const dimsByVar = new Map();
   const sizesByVar = new Map();
@@ -338,6 +342,9 @@ function renderGroupLikeXarray(tree, grpNode) {
     (isCoord ? coords : dataVars).push({ arr, name, dims, shape, attrs: attrsByVar.get(arr) || {} });
   }
 
+  if (allDims.size === 0 && coordCandidates.size > 0) {
+    for (const dn of coordCandidates.keys()) allDims.add(dn);
+  }
   const dimList = Array.from(allDims);
 
   const sections = [];

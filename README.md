@@ -1,19 +1,13 @@
 # data-tree-browser
+
 In-browser Xarray DataTree viewer
-
-## Deploy to GitHub Pages
-
-- Push to `main`. The workflow in `.github/workflows/pages.yml` will:
-  - Validate the default Zarr URL by fetching `/.zmetadata`.
-  - Upload the static site and deploy to GitHub Pages.
-- Ensure Pages is enabled in repo Settings → Pages → Build and deployment → GitHub Actions.
 
 ## Usage
 
-- Open the deployed site and click Load, or enter a Zarr store base URL.
+Open https://wachsylon.github.io/data-tree-browser/
+
+- Enter a Zarr store base URI.
 - Requirement: the store must provide consolidated `/.zmetadata` and allow CORS from browsers.
-- Default test URL:
-  - `https://s3.eu-dkrz-1.dkrz.cloud/wrcp-hackathon/data/ICON/d3hp003.zarr`
 
 ## Notes
 
