@@ -126,15 +126,16 @@ function setStatus(msg) { statusEl().textContent = msg; }
 function renderActive() {
   const { tree, activePath } = state;
   const el = slideEl();
-  if (!tree) {
-    el.innerHTML = `<div class="placeholder">Enter a Zarr store URL and click Load.</div>`;
-    return;
-  }
-  const node = tree.pathMap.get(activePath);
-  if (!node) {
-    el.innerHTML = `<div class="error">Path not found: ${escapeHtml(activePath)}</div>`;
-    return;
-  }
+  try {
+    if (!tree) {
+      el.innerHTML = `<div class="placeholder">Enter a Zarr store URL and click Load.</div>`;
+      return;
+    }
+    const node = tree.pathMap.get(activePath);
+    if (!node) {
+      el.innerHTML = `<div class="error">Path not found: ${escapeHtml(activePath)}</div>`;
+      return;
+    }
 
   const crumbs = breadcrumb(activePath)
     .map((p, i, arr) => `<span>${escapeHtml(basename(p) || "/")}${i < arr.length - 1 ? " / " : ""}</span>`)
@@ -165,6 +166,9 @@ function renderActive() {
   const groupView = renderGroupLikeXarray(state.tree, node);
   parts.push(groupView);
   el.innerHTML = parts.join("");
+  } catch (e) {
+    el.innerHTML = `<div class="error">Render error: ${escapeHtml(e.message || String(e))}</div>`;
+  }
 }
 
 function breadcrumb(path) {
@@ -262,6 +266,24 @@ function renderGroupLikeXarray(tree, grpNode) {
     dims.forEach((d) => allDims.add(d));
   }
 
+  // Build dim -> size mapping (prefer coords of same name, else first occurrence)
+  const dimSizes = new Map();
+  // First pass: from variables
+  for (const arr of arrays) {
+    const dims = dimsByVar.get(arr) || [];
+    const shape = sizesByVar.get(arr) || [];
+    dims.forEach((d, i) => {
+      if (!dimSizes.has(d) && Number.isFinite(shape[i])) dimSizes.set(d, shape[i]);
+    });
+  }
+  // Second pass: prefer coord arrays named after the dim
+  for (const arr of arrays) {
+    const name = basename(arr.path);
+    const dims = dimsByVar.get(arr) || [];
+    const shape = sizesByVar.get(arr) || [];
+    if (dims.length === 1 && dims[0] === name && Number.isFinite(shape[0])) dimSizes.set(name, shape[0]);
+  }
+
   const coords = [];
   const dataVars = [];
   for (const arr of arrays) {
@@ -274,23 +296,28 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dimList = Array.from(allDims);
 
   const sections = [];
-  if (dimList.length) {
-    sections.push(`<div class="section"><h3>Dimensions</h3><div class="meta">${dimList.map((d) => `<div class="label">name</div><div class="value">${escapeHtml(d)}</div>`).join("")}</div></div>`);
-  }
+  // Dimensions
+  const dimRows = dimList.length ? dimList.map((d) => `<div class="label">${escapeHtml(d)}</div><div class="value">${escapeHtml(dimSizes.get(d) ?? "?")}</div>`).join("") : `<div class="small">(none)</div>`;
+  sections.push(`<div class="section"><h3>Dimensions</h3><div class="meta">${dimRows}</div></div>`);
 
-  if (coords.length) {
-    const items = coords.map(({ name, dims, shape, arr }) =>
-      `<div><span class="badge">coord</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
-    ).join("");
-    sections.push(`<div class="section"><h3>Coordinates</h3><div class="codeblock">${items}</div></div>`);
-  }
+  // Coordinates
+  const coordItems = coords.map(({ name, dims, shape, arr }) =>
+    `<div><span class="badge">coord</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
+  ).join("") || `<div class="small">(none)</div>`;
+  sections.push(`<div class="section"><h3>Coordinates</h3><div class="codeblock">${coordItems}</div></div>`);
 
-  if (dataVars.length) {
-    const items = dataVars.map(({ name, dims, shape, arr }) =>
-      `<div><span class="badge">data</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
-    ).join("");
-    sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${items}</div></div>`);
-  }
+  // Data variables
+  const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
+    `<div><span class="badge">data</span> <a href="#" data-path="${escapeHtml(arr.path)}" class="navlink">${escapeHtml(name)}</a> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")}</div>`
+  ).join("") || `<div class="small">(none)</div>`;
+  sections.push(`<div class="section"><h3>Data variables</h3><div class="codeblock">${dataItems}</div></div>`);
+
+  // Child groups
+  const groupChildren = grpNode.children
+    .map((name) => tree.pathMap.get(join(grpNode.path, name)))
+    .filter((n) => n && n.type === "group");
+  const groupItems = groupChildren.map((g) => `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("") || `<div class="small">(none)</div>`;
+  sections.push(`<div class="section"><h3>Groups</h3><div class="codeblock">${groupItems}</div></div>`);
 
   if (grpNode.attrs && Object.keys(grpNode.attrs).length) {
     sections.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(grpNode.attrs, null, 2))}</pre></div>`);
