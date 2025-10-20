@@ -364,7 +364,7 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">coord</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)}</div>`
+    `<div><span class="badge">coord</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`
     <div class="section">
@@ -377,7 +377,7 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Data variables (collapsible)
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div><span class="badge">data</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)}</div>`
+    `<div><span class="badge">data</span> <span class="varname">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} dtype=${escapeHtml(arr.zarray?.dtype || "")} ${formatVarAttrsInline(arr.attrs)} ${renderChunkViz(arr)} ${renderVarAttrsDetails(arr.attrs)}</div>`
   ).join("") || `<div class="small">(none)</div>`;
   sections.push(`
     <div class="section">
@@ -457,6 +457,12 @@ function formatVarAttrsInline(attrs = {}) {
   const keys = ["standard_name", "long_name", "units"];
   const parts = keys.map((k) => attrs && attrs[k] ? `${k}=${escapeHtml(String(attrs[k]))}` : null).filter(Boolean);
   return parts.length ? `| ${parts.join(" ")}` : "";
+}
+
+function renderVarAttrsDetails(attrs = {}) {
+  if (!attrs || typeof attrs !== "object" || Object.keys(attrs).length === 0) return "";
+  const json = escapeHtml(JSON.stringify(attrs, null, 2));
+  return `<details class="var-attrs"><summary>Attributes</summary><pre class="codeblock small">${json}</pre></details>`;
 }
 
 function renderChunkViz(arr) {
