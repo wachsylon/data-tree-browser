@@ -595,7 +595,7 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`
+    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`
   ).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
@@ -608,7 +608,7 @@ function renderGroupLikeXarray(tree, grpNode) {
 
   // Data variables (collapsible)
   const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsWithSizes(dims, shape)} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`
+    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`
   ).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
@@ -674,6 +674,10 @@ function inferArrayDims(arr) {
 function formatDimsWithSizes(dims, shape) {
   const pairs = dims.map((d, i) => `${d}: ${shape[i] ?? "?"}`);
   return `(${pairs.join(", ")})`;
+}
+
+function formatDimsNames(dims) {
+  return `(${(dims || []).join(", ")})`;
 }
 
 function bindNavLinks() {
