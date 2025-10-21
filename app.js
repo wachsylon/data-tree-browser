@@ -64,6 +64,44 @@ async function loadZmetadata(baseUrl) {
   return { base: u, consolidated: jm };
 }
 
+// Zarr v3 consolidated: expect zarr.json with a metadata map.
+// We'll adapt v3 keys ending with "/group.json", "/array.json", "/attrs.json" to v2-like
+// ".zgroup", ".zarray", ".zattrs" so we can reuse buildTree().
+async function loadZarrV3(baseUrl) {
+  const u = normalizeBase(baseUrl);
+  const url = `${u}/zarr.json`;
+  setStatus(`Fetching zarr.json from ${url} ...`);
+  const zj = await fetchJson(url);
+  if (!zj || typeof zj !== 'object') throw new Error('Invalid zarr.json');
+  return { base: u, zarr: zj };
+}
+
+function buildTreeFromV3(v3) {
+  const zj = v3?.zarr;
+  // Expect a consolidated-like map in zj.metadata; if missing, throw to trigger v2 fallback
+  const md = zj && zj.metadata;
+  if (!md || typeof md !== 'object') throw new Error('zarr.json missing metadata map');
+  const mapped = {};
+  for (const [key, value] of Object.entries(md)) {
+    // Normalize paths and rewrite suffixes
+    if (key.endsWith('group.json')) {
+      const p = key.replace(/group\.json$/i, '.zgroup');
+      mapped[p] = value;
+    } else if (key.endsWith('array.json')) {
+      const p = key.replace(/array\.json$/i, '.zarray');
+      mapped[p] = value;
+    } else if (key.endsWith('attrs.json')) {
+      const p = key.replace(/attrs\.json$/i, '.zattrs');
+      mapped[p] = value;
+    } else if (/\.z(group|array|attrs)$/i.test(key)) {
+      // Already v2-like keys
+      mapped[key] = value;
+    }
+  }
+  const consolidated = { metadata: mapped };
+  return buildTree(consolidated);
+}
+
 function buildTree(consolidated) {
   const pathMap = new Map();
   // Ensure root exists
@@ -467,14 +505,23 @@ async function loadStore(baseUrl) {
   try {
     slideEl().focus();
     setStatus("Loading...");
-    const { consolidated } = await loadZmetadata(baseUrl);
     state.baseUrl = normalizeBase(baseUrl);
-    state.tree = buildTree(consolidated);
+    // Try Zarr v3 first (zarr.json). On failure, fall back to v2 consolidated (.zmetadata)
+    let tree = null;
+    try {
+      const v3 = await loadZarrV3(state.baseUrl);
+      tree = buildTreeFromV3(v3);
+      setStatus('Loaded Zarr v3 (zarr.json).');
+    } catch (e) {
+      const { consolidated } = await loadZmetadata(state.baseUrl);
+      tree = buildTree(consolidated);
+      setStatus('Loaded Zarr v2 (.zmetadata).');
+    }
+    state.tree = tree;
     state.activePath = "/";
     // Apply naming spec (if any) to root subgroups before rendering, so aggregated attrs include them
     applyNamingSpecIfAny('/');
     renderActive();
-    setStatus("Loaded.");
     // Update hash for deep-linking (store | path)
     const hash = `${encodeURI(state.baseUrl)}|${encodeURI(state.activePath)}`;
     if (location.hash.slice(1) !== hash) location.hash = hash;
