@@ -189,6 +189,9 @@ function renderActive() {
       parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
     }
     el.innerHTML = parts.join("");
+    // Hide aggregated panel for arrays
+    const agg = document.getElementById('aggPanel');
+    if (agg) { agg.hidden = true; agg.innerHTML = ""; }
     updateHeaderControls();
     const inputEl = document.querySelector('#zarrUrl');
     if (inputEl && state.baseUrl) inputEl.value = humanReadableUri();
@@ -197,13 +200,20 @@ function renderActive() {
 
   parts.push(`<div class="node-title">Group <span class="badge">${escapeHtml(activePath)}</span></div>`);
   const groupView = renderGroupLikeXarray(state.tree, node);
-  const aggView = hasMultipleSubgroups(state.tree, node) ? renderAggregatedGroupAttrs(state.tree, node) : "";
-  if (aggView) {
-    parts.push(`<div class="cards"><div class="card">${groupView}</div><div class="card">${aggView}</div></div>`);
-  } else {
-    parts.push(groupView);
-  }
+  parts.push(groupView);
   el.innerHTML = parts.join("");
+  // Render aggregated attributes in separate panel
+  const agg = document.getElementById('aggPanel');
+  if (agg) {
+    if (hasMultipleSubgroups(state.tree, node)) {
+      const aggView = renderAggregatedGroupAttrs(state.tree, node);
+      agg.hidden = false;
+      agg.innerHTML = `<div class="node-title">Aggregated attributes <span class="badge">${escapeHtml(activePath)}</span></div>${aggView}`;
+    } else {
+      agg.hidden = true;
+      agg.innerHTML = "";
+    }
+  }
   updateHeaderControls();
   const inputEl = document.querySelector('#zarrUrl');
   if (inputEl && state.baseUrl) inputEl.value = humanReadableUri();
@@ -248,12 +258,7 @@ function renderAggregatedGroupAttrs(tree, grpNode) {
     rows.push(`<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(display)}</div>`);
   }
   const body = rows.length ? rows.join("") : `<div class="small">(none)</div>`;
-  return `
-    <div class="section">
-      <h3>Aggregated attributes</h3>
-      <div class="codeblock"><div class="meta small">${body}</div></div>
-    </div>
-  `;
+  return `<div class="codeblock"><div class="meta small">${body}</div></div>`;
 }
 
 function deepEqualSimple(a, b) {
@@ -740,5 +745,9 @@ function updateHeaderControls() {
 
 function buildPythonSnippet() {
   const uri = humanReadableUri();
-  return `input xarray as xr\nds = xr.open_zarr(${JSON.stringify(uri)})`;
+  return `import xarray as xr\n` +
+         `xr.open_datatree(\n` +
+         `    ${JSON.stringify(uri)},\n` +
+         `    engine=\"zarr\"\n` +
+         `)`;
 }
