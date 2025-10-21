@@ -64,6 +64,11 @@ body {
 details summary { cursor: pointer; user-select: none; }
 details summary::-webkit-details-marker { margin-right: 6px; }
 
+/* Side-by-side layout for array Chunks and Attributes */
+.section-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.section-col details { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px; }
+.section-col details[open] { background: #f9fafb; }
+
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; border: 1px solid #c7d2fe; }
 
 .navbar { display: flex; gap: 6px; align-items: center; font-size: 12px; color: #6b7280; margin-top: 12px; }
@@ -89,6 +94,16 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .matrix2x2 { display: grid; grid-template-columns: max-content 1fr 1fr; gap: 6px 12px; align-items: center; }
 .matrix2x2 .head { font-weight: 600; }
 .matrix2x2 .rowhead { font-weight: 600; color: #374151; }
+
+/* Aggregated attributes pivot */
+.pivot-controls { display: flex; gap: 12px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+.pivot-controls label { font-size: 13px; color: #374151; }
+.pivot-controls select { margin-left: 6px; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 6px; background: #ffffff; }
+.pivot-wrap { overflow: auto; }
+.pivot-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pivot-table th, .pivot-table td { border: 1px solid #e5e7eb; padding: 6px 8px; vertical-align: top; }
+.pivot-table thead th { background: #f9fafb; }
+.pivot-table .rowhead { background: #f9fafb; text-align: left; white-space: nowrap; }
 
 /* Responsive */
 @media (max-width: 900px) {

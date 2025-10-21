@@ -185,26 +185,28 @@ function renderActive() {
     if (za.codecs) metaRows.push(["codecs", JSON.stringify(za.codecs)]);
     if (za.compressor) metaRows.push(["compressor", JSON.stringify(za.compressor)]);
     parts.push(`<div class="meta">${metaRows.map(([k, v]) => `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div>`).join("")}</div>`);
-    // Chunks collapsible matrix (array vs chunk; bytes and shape)
+    // Chunks and Attributes side-by-side
     const chunkMatrix = renderChunkMatrix(node);
-    if (chunkMatrix) {
-      parts.push(`
-        <div class="section">
-          <details open>
-            <summary>Chunks</summary>
-            ${chunkMatrix}
-          </details>
-        </div>
-      `);
-    }
-    // Attributes collapsible
     const hasAttrs = node.attrs && Object.keys(node.attrs).length;
-    parts.push(`
-      <div class="section">
+    const chunksSection = chunkMatrix ? `
+      <div class="section-col">
+        <details open>
+          <summary>Chunks</summary>
+          ${chunkMatrix}
+        </details>
+      </div>
+    ` : "";
+    const attrsSection = `
+      <div class="section-col">
         <details ${hasAttrs?"":"open"}>
           <summary>Attributes</summary>
           ${hasAttrs ? `<pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre>` : `<div class="codeblock"><div class="small">(none)</div></div>`}
         </details>
+      </div>
+    `;
+    parts.push(`
+      <div class="section section-row">
+        ${chunksSection}${attrsSection}
       </div>
     `);
     el.innerHTML = parts.join("");
@@ -261,41 +263,27 @@ function renderAggregatedGroupAttrs(tree, grpNode) {
     const a = n.attrs || {};
     for (const k of Object.keys(a)) allKeys.add(k);
   }
-  const rows = [];
-  for (const k of Array.from(allKeys).sort()) {
-    // collect only present values for this key among direct child groups
-    const present = [];
-    for (const n of children) {
-      const a = n.attrs || {};
-      if (Object.prototype.hasOwnProperty.call(a, k)) present.push(a[k]);
-    }
-    if (present.length === 0) continue; // skip keys not present anywhere
-    let allEqual = true;
-    for (let i = 1; i < present.length; i++) {
-      if (!deepEqualSimple(present[0], present[i])) { allEqual = false; break; }
-    }
-    let display;
-    if (allEqual) {
-      const v = present[0];
-      if (v == null) display = "null";
-      else if (typeof v === "object") display = JSON.stringify(v);
-      else display = String(v);
-    } else {
-      // show list of unique values
-      const asKey = (v) => v == null ? "__NULL__" : (typeof v === "object" ? JSON.stringify(v) : String(v));
-      const toDisp = (v) => v == null ? "null" : (typeof v === "object" ? JSON.stringify(v) : String(v));
-      const seen = new Set();
-      const uniques = [];
-      for (const v of present) {
-        const key = asKey(v);
-        if (!seen.has(key)) { seen.add(key); uniques.push(toDisp(v)); }
-      }
-      display = uniques.join(", ");
-    }
-    rows.push(`<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(display)}</div>`);
-  }
-  const body = rows.length ? rows.join("") : `<div class="small">(none)</div>`;
-  return `<div class="codeblock"><div class="meta small">${body}</div></div>`;
+  const keys = Array.from(allKeys).sort();
+  const selectOpt = (v, label) => `<option value="${escapeHtml(String(v))}">${escapeHtml(String(label))}</option>`;
+  const controls = `
+    <div class="pivot-controls">
+      <label>Rows
+        <select id="rowAttrSel">
+          ${selectOpt("", "(none)")}
+          ${keys.map(k => selectOpt(k, k)).join("")}
+        </select>
+      </label>
+      <label>Columns
+        <select id="colAttrSel">
+          ${selectOpt("", "(none)")}
+          ${keys.map(k => selectOpt(k, k)).join("")}
+        </select>
+      </label>
+    </div>
+    <div id="pivotHost"></div>
+  `;
+  queueMicrotask(() => bindAggPivot(children));
+  return controls;
 }
 
 function deepEqualSimple(a, b) {
@@ -305,6 +293,100 @@ function deepEqualSimple(a, b) {
     try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
   }
   return false;
+}
+
+// Convert zarr dtype tokens like "<f4" to human names like "float32"
+function prettyDtype(dtype) {
+  if (!dtype) return "";
+  const s = String(dtype);
+  if (s === 'bool' || s === '|b1') return 'bool';
+  const core = s.replace(/[<>=|]/g, ''); // strip endianness
+  const m = core.match(/^([fiu])?(\d+)$/);
+  if (!m) return core;
+  const kind = m[1] || '';
+  const n = parseInt(m[2], 10);
+  if (kind === 'f') return `float${n*8}`;
+  if (kind === 'i') return `int${n*8}`;
+  if (kind === 'u') return `uint${n*8}`;
+  // Some encodings directly give bytes; assume integer
+  if (!isNaN(n)) return `${n<=2?`int${n*8}`: n<=8?`int${n*8}`:`${core}`}`;
+  return core;
+}
+
+function valueKey(v) {
+  return v == null ? '__NULL__' : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+}
+
+function valueLabel(v) {
+  if (v == null) return 'null';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+function bindAggPivot(children) {
+  const rowSel = document.getElementById('rowAttrSel');
+  const colSel = document.getElementById('colAttrSel');
+  const host = document.getElementById('pivotHost');
+  if (!rowSel || !colSel || !host) return;
+  const render = () => {
+    const rowAttr = rowSel.value || '';
+    const colAttr = colSel.value || '';
+    host.innerHTML = renderPivotTable(children, rowAttr, colAttr);
+    queueMicrotask(() => bindNavLinks());
+  };
+  rowSel.addEventListener('change', render);
+  colSel.addEventListener('change', render);
+  render();
+}
+
+function renderPivotTable(children, rowAttr, colAttr) {
+  // Collect unique row/col values
+  const rowValsSet = new Set();
+  const colValsSet = new Set();
+  const grid = new Map(); // rowKey -> Map(colKey -> nodes[])
+  for (const n of children) {
+    const a = n.attrs || {};
+    const rv = rowAttr ? a[rowAttr] : '(all)';
+    const cv = colAttr ? a[colAttr] : '(all)';
+    const rk = valueKey(rv);
+    const ck = valueKey(cv);
+    rowValsSet.add(rk);
+    colValsSet.add(ck);
+    if (!grid.has(rk)) grid.set(rk, new Map());
+    const rowMap = grid.get(rk);
+    if (!rowMap.has(ck)) rowMap.set(ck, []);
+    rowMap.get(ck).push(n);
+  }
+  const rowKeys = Array.from(rowValsSet);
+  const colKeys = Array.from(colValsSet);
+  rowKeys.sort();
+  colKeys.sort();
+  const headCols = colKeys.map(ck => `<th>${escapeHtml(ck === '__NULL__' ? 'null' : ck)}</th>`).join('');
+  let bodyRows = '';
+  for (const rk of rowKeys) {
+    const cells = colKeys.map(ck => {
+      const nodes = grid.get(rk)?.get(ck) || [];
+      if (!nodes.length) return '<td></td>';
+      const list = nodes.map(n => {
+        const label = escapeHtml(basename(n.path));
+        return `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(n.path)}" class="navlink">${label}</a></div>`;
+      }).join('');
+      return `<td><details><summary>${nodes.length} group(s)</summary><div class="codeblock small">${list}</div></details></td>`;
+    }).join('');
+    bodyRows += `<tr><th class="rowhead">${escapeHtml(rk === '__NULL__' ? 'null' : rk)}</th>${cells}</tr>`;
+  }
+  return `
+    <div class="pivot-wrap">
+      <table class="pivot-table">
+        <thead>
+          <tr><th></th>${headCols}</tr>
+        </thead>
+        <tbody>
+          ${bodyRows}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function hasMultipleSubgroups(tree, grpNode) {
@@ -601,9 +683,11 @@ function renderGroupLikeXarray(tree, grpNode) {
   sections.push(`<div class="section"><h3>Dimensions</h3><div class="meta">${dimRows}</div></div>`);
 
   // Coordinates (collapsible)
-  const coordItems = coords.map(({ name, dims, shape, arr }) =>
-    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`
-  ).join("") || `<div class=\"small\">(none)</div>`;
+  const coordItems = coords.map(({ name, dims, shape, arr }) => {
+    const dt = prettyDtype(arr?.zarray?.dtype);
+    const dtStr = dt ? ` ${escapeHtml(dt)}` : "";
+    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
+  }).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
@@ -614,9 +698,11 @@ function renderGroupLikeXarray(tree, grpNode) {
   `);
 
   // Data variables (collapsible)
-  const dataItems = dataVars.map(({ name, dims, shape, arr }) =>
-    `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`
-  ).join("") || `<div class=\"small\">(none)</div>`;
+  const dataItems = dataVars.map(({ name, dims, shape, arr }) => {
+    const dt = prettyDtype(arr?.zarray?.dtype);
+    const dtStr = dt ? ` ${escapeHtml(dt)}` : "";
+    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
+  }).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
