@@ -191,19 +191,22 @@ function renderActive() {
     el.innerHTML = parts.join("");
     updateHeaderControls();
     const inputEl = document.querySelector('#zarrUrl');
-    if (inputEl) inputEl.value = humanReadableUri();
+    if (inputEl && state.baseUrl) inputEl.value = humanReadableUri();
     return;
   }
 
   parts.push(`<div class="node-title">Group <span class="badge">${escapeHtml(activePath)}</span></div>`);
   const groupView = renderGroupLikeXarray(state.tree, node);
-  parts.push(groupView);
-  const aggView = renderAggregatedGroupAttrs(state.tree, node);
-  if (aggView) parts.push(aggView);
+  const aggView = hasMultipleSubgroups(state.tree, node) ? renderAggregatedGroupAttrs(state.tree, node) : "";
+  if (aggView) {
+    parts.push(`<div class="cards"><div class="card">${groupView}</div><div class="card">${aggView}</div></div>`);
+  } else {
+    parts.push(groupView);
+  }
   el.innerHTML = parts.join("");
   updateHeaderControls();
   const inputEl = document.querySelector('#zarrUrl');
-  if (inputEl) inputEl.value = humanReadableUri();
+  if (inputEl && state.baseUrl) inputEl.value = humanReadableUri();
   renderSidebar();
   } catch (e) {
     el.innerHTML = `<div class="error">Render error: ${escapeHtml(e.message || String(e))}</div>`;
