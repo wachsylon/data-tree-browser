@@ -251,23 +251,21 @@ function renderActive() {
 
 function renderAggregatedGroupAttrs(tree, grpNode) {
   if (!tree || !grpNode) return "";
-  const paths = Array.from(tree.pathMap.keys());
-  const root = normalizePath(grpNode.path);
-  const groupNodes = paths
-    .filter((p) => p === root || p.startsWith(root + "/"))
-    .map((p) => tree.pathMap.get(p))
-    .filter((n) => !!n); // include both groups and arrays for aggregation
-  if (!groupNodes.length) return "";
+  // Use only direct subgroup groups of the active group
+  const children = (grpNode.children || [])
+    .map((name) => tree.pathMap.get(join(grpNode.path, name)))
+    .filter((n) => n && n.type === "group");
+  if (!children.length) return "";
   const allKeys = new Set();
-  for (const n of groupNodes) {
+  for (const n of children) {
     const a = n.attrs || {};
     for (const k of Object.keys(a)) allKeys.add(k);
   }
   const rows = [];
   for (const k of Array.from(allKeys).sort()) {
-    // collect only present values for this key
+    // collect only present values for this key among direct child groups
     const present = [];
-    for (const n of groupNodes) {
+    for (const n of children) {
       const a = n.attrs || {};
       if (Object.prototype.hasOwnProperty.call(a, k)) present.push(a[k]);
     }
