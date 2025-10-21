@@ -844,3 +844,33 @@ function buildPythonSnippet() {
   return `import xarray as xr\n` +
          `xr.open_zarr(${JSON.stringify(uri)})`;
 }
+
+function onApplyNamingSpec() {
+  if (!state.tree) { setStatus('Load a store first.'); return; }
+  const input = document.getElementById('namingSpec');
+  const spec = (input?.value || '').trim();
+  if (!spec) { setStatus('Enter a naming spec (e.g., frequency_cell-methods_zoomlevel_realm).'); return; }
+  const keys = spec.split('_').filter(Boolean);
+  if (!keys.length) { setStatus('Invalid naming spec.'); return; }
+  const grp = state.tree.pathMap.get(state.activePath);
+  if (!grp || grp.type !== 'group') { setStatus('Active node is not a group.'); return; }
+  const children = (grp.children || [])
+    .map((name) => state.tree.pathMap.get(join(grp.path, name)))
+    .filter((n) => n && n.type === 'group');
+  if (!children.length) { setStatus('No subgroup children to apply spec.'); return; }
+  const parsed = [];
+  for (const child of children) {
+    const name = basename(child.path);
+    const parts = name.split('_');
+    if (parts.length !== keys.length) { setStatus('Parsing failed: not all subgroup names match the spec.'); return; }
+    const record = {};
+    for (let i = 0; i < keys.length; i++) record[keys[i]] = parts[i];
+    parsed.push({ node: child, attrs: record });
+  }
+  for (const { node, attrs } of parsed) {
+    if (!node.attrs || typeof node.attrs !== 'object') node.attrs = {};
+    for (const [k, v] of Object.entries(attrs)) node.attrs[k] = v;
+  }
+  setStatus(`Applied naming spec to ${parsed.length} subgroup(s).`);
+  renderActive();
+}
