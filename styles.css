@@ -61,6 +61,8 @@ body {
 .section { margin-top: 16px; }
 .section h3 { margin: 0 0 8px; font-size: 14px; color: #374151; }
 .codeblock { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; overflow: auto; }
+details summary { cursor: pointer; user-select: none; }
+details summary::-webkit-details-marker { margin-right: 6px; }
 
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; border: 1px solid #c7d2fe; }
 
@@ -82,6 +84,11 @@ body {
 .chunkviz-2d .chunk-row { display: grid; grid-auto-flow: column; gap: 2px; align-items: center; }
 .chunk-cell { width: 8px; height: 8px; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 2px; }
 .varname { font-weight: 600; }
+
+/* Chunk matrix */
+.matrix2x2 { display: grid; grid-template-columns: max-content 1fr 1fr; gap: 6px 12px; align-items: center; }
+.matrix2x2 .head { font-weight: 600; }
+.matrix2x2 .rowhead { font-weight: 600; color: #374151; }
 
 /* Responsive */
 @media (max-width: 900px) {

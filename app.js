@@ -185,9 +185,28 @@ function renderActive() {
     if (za.codecs) metaRows.push(["codecs", JSON.stringify(za.codecs)]);
     if (za.compressor) metaRows.push(["compressor", JSON.stringify(za.compressor)]);
     parts.push(`<div class="meta">${metaRows.map(([k, v]) => `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(v)}</div>`).join("")}</div>`);
-    if (node.attrs && Object.keys(node.attrs).length) {
-      parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
+    // Chunks collapsible matrix (array vs chunk; bytes and shape)
+    const chunkMatrix = renderChunkMatrix(node);
+    if (chunkMatrix) {
+      parts.push(`
+        <div class="section">
+          <details open>
+            <summary>Chunks</summary>
+            ${chunkMatrix}
+          </details>
+        </div>
+      `);
     }
+    // Attributes collapsible
+    const hasAttrs = node.attrs && Object.keys(node.attrs).length;
+    parts.push(`
+      <div class="section">
+        <details ${hasAttrs?"":"open"}>
+          <summary>Attributes</summary>
+          ${hasAttrs ? `<pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre>` : `<div class="codeblock"><div class="small">(none)</div></div>`}
+        </details>
+      </div>
+    `);
     el.innerHTML = parts.join("");
     // Hide aggregated panel and two-col layout for arrays
     const agg = document.getElementById('aggPanel');
@@ -732,6 +751,53 @@ function chunkCounts(shape, chunks) {
   return shape.map((s, i) => (chunks[i] ? Math.ceil(s / chunks[i]) : 1));
 }
 
+function renderChunkMatrix(arr) {
+  const za = arr.zarray || {};
+  const shape = Array.isArray(za.shape) ? za.shape : [];
+  const chunks = Array.isArray(za.chunks) ? za.chunks : null;
+  if (!shape.length) return "";
+  const item = dtypeItemsize(za.dtype);
+  const totalElems = product(shape);
+  const totalBytes = item * totalElems;
+  const chunkElems = Array.isArray(chunks) && chunks.length === shape.length ? product(chunks) : null;
+  const chunkBytes = chunkElems != null ? item * chunkElems : null;
+  const bytesFmt = (n) => n == null ? "?" : humanBytes(n);
+  const shapeFmt = (a) => a ? `[${a.join(", ")}]` : "?";
+  const arrayShape = shapeFmt(shape);
+  const chunkShape = shapeFmt(chunks && chunks.length === shape.length ? chunks : null);
+  return `
+    <div class="matrix2x2">
+      <div></div><div class="head">array</div><div class="head">chunk</div>
+      <div class="rowhead">bytes</div><div>${bytesFmt(totalBytes)}</div><div>${bytesFmt(chunkBytes)}</div>
+      <div class="rowhead">shape</div><div>${escapeHtml(arrayShape)}</div><div>${escapeHtml(chunkShape)}</div>
+    </div>
+  `;
+}
+
+function product(a) { return Array.isArray(a) ? a.reduce((p, v) => p * (Number.isFinite(v)?v:1), 1) : 0; }
+
+function dtypeItemsize(dtype) {
+  if (!dtype) return 0;
+  // Common patterns like "<f4", "<f8", "|u1", "i4", "u2", "f4", "bool"
+  if (dtype === 'bool' || dtype === '|b1') return 1;
+  const m = String(dtype).match(/(\d+)$/);
+  if (m) {
+    const bytes = parseInt(m[1], 10);
+    // If match is number of bits (like b1?), many dtypes encode bytes directly (1,2,4,8,16)
+    // Heuristic: if value <= 16 assume it's bytes; if >16 treat as bits
+    return bytes > 16 ? Math.ceil(bytes / 8) : bytes;
+  }
+  return 0;
+}
+
+function humanBytes(n) {
+  if (n == null || !isFinite(n)) return "?";
+  const units = ['B','KB','MB','GB','TB'];
+  let x = n; let i = 0;
+  while (x >= 1024 && i < units.length-1) { x /= 1024; i++; }
+  return `${x.toFixed(x>=10?0: x>=1?1:2)} ${units[i]}`;
+}
+
 // Build the full active URI and decode to human-readable form (no %xx)
 function humanReadableUri() {
   if (!state.baseUrl) return "";
@@ -739,6 +805,18 @@ function humanReadableUri() {
   const path = normalizePath(state.activePath || "/");
   const full = path === "/" ? base : `${base}${path}`;
   try { return decodeURI(full); } catch { return full; }
+}
+
+// Heuristic: derive store base from a full URI that may include subgroup paths
+function deriveBaseFromUrl(url) {
+  if (!url) return "";
+  try {
+    const idx = url.indexOf('.zarr');
+    if (idx !== -1) return normalizeBase(url.slice(0, idx + 5));
+    return normalizeBase(url);
+  } catch {
+    return url;
+  }
 }
 
 function updateHeaderControls() {
