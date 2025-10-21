@@ -281,7 +281,16 @@ function renderAggregatedGroupAttrs(tree, grpNode) {
       else if (typeof v === "object") display = JSON.stringify(v);
       else display = String(v);
     } else {
-      display = "(varies)";
+      // show list of unique values
+      const asKey = (v) => v == null ? "__NULL__" : (typeof v === "object" ? JSON.stringify(v) : String(v));
+      const toDisp = (v) => v == null ? "null" : (typeof v === "object" ? JSON.stringify(v) : String(v));
+      const seen = new Set();
+      const uniques = [];
+      for (const v of present) {
+        const key = asKey(v);
+        if (!seen.has(key)) { seen.add(key); uniques.push(toDisp(v)); }
+      }
+      display = uniques.join(", ");
     }
     rows.push(`<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(display)}</div>`);
   }
