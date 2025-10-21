@@ -302,26 +302,63 @@ function renderAggregatedGroupAttrs(tree, grpNode) {
     for (const k of Object.keys(a)) allKeys.add(k);
   }
   const keys = Array.from(allKeys).sort();
+  // Unique values summary (previous view)
+  const summaryRows = [];
+  for (const k of keys) {
+    const present = [];
+    for (const n of children) {
+      const a = n.attrs || {};
+      if (Object.prototype.hasOwnProperty.call(a, k)) present.push(a[k]);
+    }
+    if (!present.length) continue;
+    let allEqual = true;
+    for (let i = 1; i < present.length; i++) {
+      if (!deepEqualSimple(present[0], present[i])) { allEqual = false; break; }
+    }
+    let display;
+    if (allEqual) {
+      const v = present[0];
+      if (v == null) display = "null";
+      else if (typeof v === "object") display = JSON.stringify(v);
+      else display = String(v);
+    } else {
+      const asKey = (v) => v == null ? "__NULL__" : (typeof v === "object" ? JSON.stringify(v) : String(v));
+      const toDisp = (v) => v == null ? "null" : (typeof v === "object" ? JSON.stringify(v) : String(v));
+      const seen = new Set();
+      const uniques = [];
+      for (const v of present) {
+        const key = asKey(v);
+        if (!seen.has(key)) { seen.add(key); uniques.push(toDisp(v)); }
+      }
+      display = uniques.join(", ");
+    }
+    summaryRows.push(`<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(display)}</div>`);
+  }
+  const summaryBody = summaryRows.length ? summaryRows.join("") : `<div class="small">(none)</div>`;
+  const summaryHtml = `<div class="section"><h3>Unique values</h3><div class="codeblock"><div class="meta small">${summaryBody}</div></div></div>`;
   const selectOpt = (v, label) => `<option value="${escapeHtml(String(v))}">${escapeHtml(String(label))}</option>`;
   const controls = `
-    <div class="pivot-controls">
-      <label>Rows
-        <select id="rowAttrSel">
-          ${selectOpt("", "(none)")}
-          ${keys.map(k => selectOpt(k, k)).join("")}
-        </select>
-      </label>
-      <label>Columns
-        <select id="colAttrSel">
-          ${selectOpt("", "(none)")}
-          ${keys.map(k => selectOpt(k, k)).join("")}
-        </select>
-      </label>
+    <div class="section">
+      <h3>Interactive table</h3>
+      <div class="pivot-controls">
+        <label>Rows
+          <select id="rowAttrSel">
+            ${selectOpt("", "(none)")}
+            ${keys.map(k => selectOpt(k, k)).join("")}
+          </select>
+        </label>
+        <label>Columns
+          <select id="colAttrSel">
+            ${selectOpt("", "(none)")}
+            ${keys.map(k => selectOpt(k, k)).join("")}
+          </select>
+        </label>
+      </div>
+      <div id="pivotHost"></div>
     </div>
-    <div id="pivotHost"></div>
   `;
   queueMicrotask(() => bindAggPivot(children));
-  return controls;
+  return summaryHtml + controls;
 }
 
 function deepEqualSimple(a, b) {
