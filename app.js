@@ -407,6 +407,10 @@ function init() {
       catch { setStatus('Failed to copy Python snippet.'); }
     });
   }
+  const applyNamingBtn = document.getElementById('applyNamingBtn');
+  if (applyNamingBtn) {
+    applyNamingBtn.addEventListener('click', onApplyNamingSpec);
+  }
   document.addEventListener("keydown", handleKeydown);
   // Auto-load from hash if present: format is <store>|<path>
   const initial = location.hash ? location.hash.slice(1) : "";
