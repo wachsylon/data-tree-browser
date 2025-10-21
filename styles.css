@@ -16,6 +16,14 @@ body {
 .controls button { padding: 8px 12px; border-radius: 6px; border: 1px solid #111827; background: #111827; color: white; cursor: pointer; }
 .controls button:hover { background: #374151; border-color: #374151; }
 
+.controls-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.controls-row button { padding: 6px 10px; border-radius: 6px; border: 1px solid #111827; background: #111827; color: white; cursor: pointer; }
+.controls-row button:hover { background: #374151; border-color: #374151; }
+.controls-row details { padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 8px; background: #ffffff; }
+.controls-row details[open] { background: #f9fafb; }
+.controls-row summary { cursor: pointer; font-weight: 500; }
+.controls-row #pyCode { margin-top: 8px; }
+
 .hints { display: flex; gap: 12px; color: #6b7280; font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
 
 .content { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 16px; }

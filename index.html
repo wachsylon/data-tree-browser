@@ -14,6 +14,14 @@
         <input id="zarrUrl" type="url" placeholder="Enter Zarr store base URL (consolidated .zmetadata required)" value="https://s3.eu-dkrz-1.dkrz.cloud/wrcp-hackathon/data/ICON/d3hp003.zarr" />
         <button id="loadBtn">Load</button>
       </div>
+      <div class="controls-row">
+        <button id="copyUriBtn">Copy URI</button>
+        <details id="pyDetails">
+          <summary>Show Python code</summary>
+          <pre class="codeblock" id="pyCode"></pre>
+          <button id="copyPyBtn" type="button">Copy Python code</button>
+        </details>
+      </div>
       <div class="hints">
         <span>Navigation: ↑ Parent</span>
         <span>↓ First child</span>

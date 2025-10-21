@@ -172,18 +172,7 @@ function renderActive() {
 
   const parts = [];
   parts.push(`<div class="breadcrumb">${crumbs}</div>`);
-  // Active URI block with decoded, human-readable characters and copy buttons
-  const uri = humanReadableUri();
-  if (uri) {
-    parts.push(`
-      <div class="section">
-        <div class="meta">
-          <div class="label">URI</div>
-          <div class="value"><code>${escapeHtml(uri)}</code> <button class="btn-copy" data-copy-uri>Copy URI</button> <button class="btn-copy" data-copy-python>Copy Python</button></div>
-        </div>
-      </div>
-    `);
-  }
+  // (header contains copy buttons; no in-content copy buttons)
   if (node.type === "array") {
     parts.push(`<div class="node-title">Array <span class="badge">${escapeHtml(activePath)}</span></div>`);
     const metaRows = [];
@@ -200,7 +189,7 @@ function renderActive() {
       parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
     }
     el.innerHTML = parts.join("");
-    bindCopyButtons();
+    updateHeaderControls();
     const inputEl = document.querySelector('#zarrUrl');
     if (inputEl) inputEl.value = humanReadableUri();
     return;
@@ -212,7 +201,7 @@ function renderActive() {
   const aggView = renderAggregatedGroupAttrs(state.tree, node);
   if (aggView) parts.push(aggView);
   el.innerHTML = parts.join("");
-  bindCopyButtons();
+  updateHeaderControls();
   const inputEl = document.querySelector('#zarrUrl');
   if (inputEl) inputEl.value = humanReadableUri();
   renderSidebar();
@@ -362,6 +351,23 @@ async function loadStore(baseUrl) {
 function init() {
   $("#loadBtn").addEventListener("click", onLoadClick);
   $("#zarrUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") onLoadClick(); });
+  // Header controls
+  const copyUriBtn = document.getElementById('copyUriBtn');
+  if (copyUriBtn) {
+    copyUriBtn.addEventListener('click', async () => {
+      const uri = humanReadableUri();
+      try { await navigator.clipboard.writeText(uri); setStatus('URI copied to clipboard.'); }
+      catch { setStatus('Failed to copy URI.'); }
+    });
+  }
+  const copyPyBtn = document.getElementById('copyPyBtn');
+  if (copyPyBtn) {
+    copyPyBtn.addEventListener('click', async () => {
+      const code = buildPythonSnippet();
+      try { await navigator.clipboard.writeText(code); setStatus('Python snippet copied to clipboard.'); }
+      catch { setStatus('Failed to copy Python snippet.'); }
+    });
+  }
   document.addEventListener("keydown", handleKeydown);
   // Auto-load from hash if present: format is <store>|<path>
   const initial = location.hash ? location.hash.slice(1) : "";
@@ -715,29 +721,14 @@ function humanReadableUri() {
   try { return decodeURI(full); } catch { return full; }
 }
 
-function bindCopyButtons() {
-  const uriBtn = document.querySelector("button[data-copy-uri]");
-  const pyBtn = document.querySelector("button[data-copy-python]");
+function updateHeaderControls() {
+  const codeEl = document.getElementById('pyCode');
+  if (codeEl) {
+    codeEl.textContent = buildPythonSnippet();
+  }
+}
+
+function buildPythonSnippet() {
   const uri = humanReadableUri();
-  if (uriBtn) {
-    uriBtn.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(uri);
-        setStatus("URI copied to clipboard.");
-      } catch (e) {
-        setStatus("Failed to copy URI.");
-      }
-    }, { once: true });
-  }
-  if (pyBtn) {
-    pyBtn.addEventListener("click", async () => {
-      const code = `input xarray as xr\nds = xr.open_zarr(${JSON.stringify(uri)})`;
-      try {
-        await navigator.clipboard.writeText(code);
-        setStatus("Python snippet copied to clipboard.");
-      } catch (e) {
-        setStatus("Failed to copy Python snippet.");
-      }
-    }, { once: true });
-  }
+  return `input xarray as xr\nds = xr.open_zarr(${JSON.stringify(uri)})`;
 }
