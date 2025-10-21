@@ -696,18 +696,34 @@ function renderTreeNode(tree, path) {
   const isGroup = node.type === "group";
   if (!isGroup) return ""; // exclude arrays from sidebar
   const label = path === "/" ? "/" : basename(path);
+  const hasGroupKids = (node.children || []).some((name) => {
+    const child = tree.pathMap.get(join(node.path, name));
+    return child && child.type === 'group';
+  });
   let li = `<li>`;
-  li += `<a href="#" data-path="${escapeHtml(node.path)}"><span class=\"badge\">grp</span>${escapeHtml(label)}</a>`;
-  if (node.children && node.children.length) {
+  if (hasGroupKids) {
+    const open = isSubtreeOpen(node.path, state.activePath);
+    li += `<details ${open ? 'open' : ''}>`;
+    li += `<summary><a href="#" data-path="${escapeHtml(node.path)}"><span class=\"badge\">grp</span>${escapeHtml(label)}</a></summary>`;
     const kids = node.children.map((name) => {
       const childPath = join(node.path, name);
       const child = tree.pathMap.get(childPath);
       return child && child.type === "group" ? renderTreeNode(tree, childPath) : "";
     }).join("");
     if (kids) li += `<ul>${kids}</ul>`;
+    li += `</details>`;
+  } else {
+    li += `<a href="#" data-path="${escapeHtml(node.path)}"><span class=\"badge\">grp</span>${escapeHtml(label)}</a>`;
   }
   li += `</li>`;
   return li;
+}
+
+function isSubtreeOpen(rootPath, activePath) {
+  const a = normalizePath(rootPath);
+  const b = normalizePath(activePath || '/');
+  if (a === '/') return true;
+  return b === a || b.startsWith(a + '/');
 }
 
 function renderGroupLikeXarray(tree, grpNode) {
