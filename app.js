@@ -172,6 +172,18 @@ function renderActive() {
 
   const parts = [];
   parts.push(`<div class="breadcrumb">${crumbs}</div>`);
+  // Active URI block with decoded, human-readable characters and copy buttons
+  const uri = humanReadableUri();
+  if (uri) {
+    parts.push(`
+      <div class="section">
+        <div class="meta">
+          <div class="label">URI</div>
+          <div class="value"><code>${escapeHtml(uri)}</code> <button class="btn-copy" data-copy-uri>Copy URI</button> <button class="btn-copy" data-copy-python>Copy Python</button></div>
+        </div>
+      </div>
+    `);
+  }
   if (node.type === "array") {
     parts.push(`<div class="node-title">Array <span class="badge">${escapeHtml(activePath)}</span></div>`);
     const metaRows = [];
@@ -188,6 +200,9 @@ function renderActive() {
       parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
     }
     el.innerHTML = parts.join("");
+    bindCopyButtons();
+    const inputEl = document.querySelector('#zarrUrl');
+    if (inputEl) inputEl.value = humanReadableUri();
     return;
   }
 
@@ -195,6 +210,9 @@ function renderActive() {
   const groupView = renderGroupLikeXarray(state.tree, node);
   parts.push(groupView);
   el.innerHTML = parts.join("");
+  bindCopyButtons();
+  const inputEl = document.querySelector('#zarrUrl');
+  if (inputEl) inputEl.value = humanReadableUri();
   renderSidebar();
   } catch (e) {
     el.innerHTML = `<div class="error">Render error: ${escapeHtml(e.message || String(e))}</div>`;
@@ -258,7 +276,8 @@ function handleKeydown(ev) {
 
 async function onLoadClick() {
   const input = $("#zarrUrl");
-  const baseUrl = (input.value || "").trim();
+  const entered = (input.value || "").trim();
+  const baseUrl = deriveBaseFromUrl(entered);
   if (!baseUrl) {
     setStatus("Please enter a Zarr store base URL.");
     input.focus();
@@ -631,4 +650,40 @@ function renderChunkViz(arr) {
 
 function chunkCounts(shape, chunks) {
   return shape.map((s, i) => (chunks[i] ? Math.ceil(s / chunks[i]) : 1));
+}
+
+// Build the full active URI and decode to human-readable form (no %xx)
+function humanReadableUri() {
+  if (!state.baseUrl) return "";
+  const base = normalizeBase(state.baseUrl);
+  const path = normalizePath(state.activePath || "/");
+  const full = path === "/" ? base : `${base}${path}`;
+  try { return decodeURI(full); } catch { return full; }
+}
+
+function bindCopyButtons() {
+  const uriBtn = document.querySelector("button[data-copy-uri]");
+  const pyBtn = document.querySelector("button[data-copy-python]");
+  const uri = humanReadableUri();
+  if (uriBtn) {
+    uriBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(uri);
+        setStatus("URI copied to clipboard.");
+      } catch (e) {
+        setStatus("Failed to copy URI.");
+      }
+    }, { once: true });
+  }
+  if (pyBtn) {
+    pyBtn.addEventListener("click", async () => {
+      const code = `input xarray as xr\nds = xr.open_zarr(${JSON.stringify(uri)})`;
+      try {
+        await navigator.clipboard.writeText(code);
+        setStatus("Python snippet copied to clipboard.");
+      } catch (e) {
+        setStatus("Failed to copy Python snippet.");
+      }
+    }, { once: true });
+  }
 }
