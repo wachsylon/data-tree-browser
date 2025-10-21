@@ -623,8 +623,10 @@ function renderGroupLikeXarray(tree, grpNode) {
   const groupChildren = grpNode.children
     .map((name) => tree.pathMap.get(join(grpNode.path, name)))
     .filter((n) => n && n.type === "group");
-  const groupItems = groupChildren.map((g) => `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("") || `<div class="small">(none)</div>`;
-  sections.push(`<div class="section"><h3>Groups</h3><div class="codeblock">${groupItems}</div></div>`);
+  if (groupChildren.length > 0) {
+    const groupItems = groupChildren.map((g) => `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("");
+    sections.push(`<div class="section"><h3>Groups</h3><div class="codeblock">${groupItems}</div></div>`);
+  }
 
   // Attributes (collapsible; show even if none) rendered as key=value lines
   const attrsBlock = grpNode.attrs && Object.keys(grpNode.attrs).length
