@@ -73,31 +73,54 @@ async function loadZarrV3(baseUrl) {
   setStatus(`Fetching zarr.json from ${url} ...`);
   const zj = await fetchJson(url);
   if (!zj || typeof zj !== 'object') throw new Error('Invalid zarr.json');
+  console.debug('[zarr] zarr.json content keys:', Object.keys(zj || {}));
   return { base: u, zarr: zj };
 }
 
 function buildTreeFromV3(v3) {
   const zj = v3?.zarr;
-  // Expect a consolidated-like map in zj.metadata; if missing, throw to trigger v2 fallback
-  const md = zj && zj.metadata;
-  if (!md || typeof md !== 'object') throw new Error('zarr.json missing metadata map');
+  // Expect a consolidated-like map either in zarr.json.metadata OR zarr.json.consolidated_metadata.metadata
+  const md = (zj && (zj.metadata || (zj.consolidated_metadata && zj.consolidated_metadata.metadata))) || null;
+  if (!md || typeof md !== 'object') throw new Error('zarr.json missing metadata map (expected metadata or consolidated_metadata.metadata)');
   const mapped = {};
+  let mode = null;
   for (const [key, value] of Object.entries(md)) {
-    // Normalize paths and rewrite suffixes
-    if (key.endsWith('group.json')) {
-      const p = key.replace(/group\.json$/i, '.zgroup');
-      mapped[p] = value;
-    } else if (key.endsWith('array.json')) {
-      const p = key.replace(/array\.json$/i, '.zarray');
-      mapped[p] = value;
-    } else if (key.endsWith('attrs.json')) {
-      const p = key.replace(/attrs\.json$/i, '.zattrs');
-      mapped[p] = value;
-    } else if (/\.z(group|array|attrs)$/i.test(key)) {
-      // Already v2-like keys
-      mapped[key] = value;
+    // Mode A: file-like keys ending in group.json/array.json/attrs.json
+    if (typeof key === 'string' && /\.(json)$/.test(key)) {
+      mode = mode || 'filelist';
+      if (key.endsWith('group.json')) {
+        const p = key.replace(/group\.json$/i, '.zgroup');
+        mapped[p] = value;
+      } else if (key.endsWith('array.json')) {
+        const p = key.replace(/array\.json$/i, '.zarray');
+        mapped[p] = value;
+      } else if (key.endsWith('attrs.json')) {
+        const p = key.replace(/attrs\.json$/i, '.zattrs');
+        mapped[p] = value;
+      } else if (/\.z(group|array|attrs)$/i.test(key)) {
+        mapped[key] = value;
+      }
+      continue;
+    }
+    // Mode B: node-descriptor map: key is a path, value has node_type and attributes
+    if (value && typeof value === 'object' && (value.node_type || value.attributes || value.consolidated_metadata)) {
+      mode = mode || 'nodedesc';
+      const path = String(key);
+      const attrs = value.attributes || {};
+      if (value.node_type === 'group') {
+        mapped[`${path}/.zgroup`] = { zarr_format: 2 };
+        if (attrs && Object.keys(attrs).length) mapped[`${path}/.zattrs`] = attrs;
+      } else if (value.node_type === 'array') {
+        // Try to find array metadata in descriptor if present; otherwise, create minimal placeholder
+        const arrMeta = value.array || value.metadata || {};
+        mapped[`${path}/.zarray`] = arrMeta;
+        if (attrs && Object.keys(attrs).length) mapped[`${path}/.zattrs`] = attrs;
+      }
+      continue;
     }
   }
+  console.debug('[zarr] v3 consolidated mode used:', mode, 'entries:', Object.keys(mapped).length);
+  if (!Object.keys(mapped).length) throw new Error('zarr.json metadata did not contain recognizable entries');
   const consolidated = { metadata: mapped };
   return buildTree(consolidated);
 }
@@ -547,11 +570,16 @@ async function loadStore(baseUrl) {
     let tree = null;
     try {
       const v3 = await loadZarrV3(state.baseUrl);
+      console.info('[zarr] v3 detected at', state.baseUrl, v3?.zarr);
       tree = buildTreeFromV3(v3);
+      console.info('[zarr] v3 tree built successfully');
       setStatus('Loaded Zarr v3 (zarr.json).');
     } catch (e) {
+      console.warn('[zarr] v3 load failed, falling back to v2 (.zmetadata). Reason:', e?.message || e);
       const { consolidated } = await loadZmetadata(state.baseUrl);
+      console.info('[zarr] v2 consolidated loaded');
       tree = buildTree(consolidated);
+      console.info('[zarr] v2 tree built successfully');
       setStatus('Loaded Zarr v2 (.zmetadata).');
     }
     state.tree = tree;
@@ -563,6 +591,7 @@ async function loadStore(baseUrl) {
     const hash = `${encodeURI(state.baseUrl)}|${encodeURI(state.activePath)}`;
     if (location.hash.slice(1) !== hash) location.hash = hash;
   } catch (err) {
+    console.error('[zarr] loadStore error:', err);
     slideEl().innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
     setStatus("Error.");
   }
@@ -1005,8 +1034,14 @@ function humanReadableUri() {
 function deriveBaseFromUrl(url) {
   if (!url) return "";
   try {
+    // v2: if it includes ".zarr", cut to the .zarr folder
     const idx = url.indexOf('.zarr');
     if (idx !== -1) return normalizeBase(url.slice(0, idx + 5));
+    // v3: if it points directly to zarr.json, strip the filename
+    const z3 = url.replace(/[/#?].*$/, '') // strip query/hash for detection
+    if (z3.endsWith('zarr.json')) {
+      return normalizeBase(url.replace(/\/zarr\.json([?#].*)?$/i, ''));
+    }
     return normalizeBase(url);
   } catch {
     return url;
