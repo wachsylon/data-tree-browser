@@ -209,6 +209,8 @@ function renderActive() {
   parts.push(`<div class="node-title">Group <span class="badge">${escapeHtml(activePath)}</span></div>`);
   const groupView = renderGroupLikeXarray(state.tree, node);
   parts.push(groupView);
+  const aggView = renderAggregatedGroupAttrs(state.tree, node);
+  if (aggView) parts.push(aggView);
   el.innerHTML = parts.join("");
   bindCopyButtons();
   const inputEl = document.querySelector('#zarrUrl');
@@ -217,6 +219,58 @@ function renderActive() {
   } catch (e) {
     el.innerHTML = `<div class="error">Render error: ${escapeHtml(e.message || String(e))}</div>`;
   }
+}
+
+function renderAggregatedGroupAttrs(tree, grpNode) {
+  if (!tree || !grpNode) return "";
+  const paths = Array.from(tree.pathMap.keys());
+  const root = normalizePath(grpNode.path);
+  const groupNodes = paths
+    .filter((p) => p === root || p.startsWith(root + "/"))
+    .map((p) => tree.pathMap.get(p))
+    .filter((n) => n && n.type === "group");
+  if (!groupNodes.length) return "";
+  const allKeys = new Set();
+  for (const n of groupNodes) {
+    const a = n.attrs || {};
+    for (const k of Object.keys(a)) allKeys.add(k);
+  }
+  const rows = [];
+  for (const k of Array.from(allKeys).sort()) {
+    let same = true;
+    let firstSet = false;
+    let firstVal;
+    for (const n of groupNodes) {
+      const v = (n.attrs || {})[k];
+      if (!firstSet) { firstVal = v; firstSet = true; continue; }
+      if (!deepEqualSimple(firstVal, v)) { same = false; break; }
+    }
+    let display;
+    if (same) {
+      if (firstVal == null) display = "null";
+      else if (typeof firstVal === "object") display = JSON.stringify(firstVal);
+      else display = String(firstVal);
+    } else {
+      display = "(varies)";
+    }
+    rows.push(`<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(display)}</div>`);
+  }
+  const body = rows.length ? rows.join("") : `<div class="small">(none)</div>`;
+  return `
+    <div class="section">
+      <h3>Aggregated attributes</h3>
+      <div class="codeblock"><div class="meta small">${body}</div></div>
+    </div>
+  `;
+}
+
+function deepEqualSimple(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a && b && typeof a === "object") {
+    try { return JSON.stringify(a) === JSON.stringify(b); } catch { return false; }
+  }
+  return false;
 }
 
 function breadcrumb(path) {
