@@ -256,7 +256,7 @@ function renderAggregatedGroupAttrs(tree, grpNode) {
   const groupNodes = paths
     .filter((p) => p === root || p.startsWith(root + "/"))
     .map((p) => tree.pathMap.get(p))
-    .filter((n) => n && n.type === "group");
+    .filter((n) => !!n); // include both groups and arrays for aggregation
   if (!groupNodes.length) return "";
   const allKeys = new Set();
   for (const n of groupNodes) {
@@ -855,7 +855,10 @@ function applyNamingSpecIfAny(targetPath) {
     for (const child of children) {
       const name = basename(child.path);
       const parts = name.split('_');
-      if (parts.length !== keys.length) return; // abort if any mismatch
+      if (parts.length !== keys.length) {
+        setStatus('Naming scheme not applied: spec tokens do not match all subgroup names.');
+        return; // abort if any mismatch
+      }
       const record = {};
       for (let i = 0; i < keys.length; i++) record[keys[i]] = parts[i];
       parsed.push({ node: child, attrs: record });
@@ -864,6 +867,7 @@ function applyNamingSpecIfAny(targetPath) {
       if (!node.attrs || typeof node.attrs !== 'object') node.attrs = {};
       for (const [k, v] of Object.entries(attrs)) node.attrs[k] = v;
     }
+    if (parsed.length) setStatus(`Naming scheme applied to ${parsed.length} subgroup(s).`);
   } catch (e) {
     // ignore auto-apply errors
   }
