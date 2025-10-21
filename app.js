@@ -9,37 +9,6 @@ let zarrita; // eslint-disable-line no-unused-vars
   } catch (e) {
     // ignore; we don't strictly need zarrita to render metadata tree
   }
-
-function applyNamingSpecIfAny() {
-  try {
-    const input = document.getElementById('namingSpec');
-    const spec = (input?.value || '').trim();
-    if (!spec || !state.tree) return; // nothing to do
-    const keys = spec.split('_').filter(Boolean);
-    if (!keys.length) return;
-    const grp = state.tree.pathMap.get('/') || state.tree.root;
-    if (!grp || grp.type !== 'group') return;
-    const children = (grp.children || [])
-      .map((name) => state.tree.pathMap.get(join(grp.path, name)))
-      .filter((n) => n && n.type === 'group');
-    if (!children.length) return;
-    const parsed = [];
-    for (const child of children) {
-      const name = basename(child.path);
-      const parts = name.split('_');
-      if (parts.length !== keys.length) return; // abort all if any mismatch
-      const record = {};
-      for (let i = 0; i < keys.length; i++) record[keys[i]] = parts[i];
-      parsed.push({ node: child, attrs: record });
-    }
-    for (const { node, attrs } of parsed) {
-      if (!node.attrs || typeof node.attrs !== 'object') node.attrs = {};
-      for (const [k, v] of Object.entries(attrs)) node.attrs[k] = v;
-    }
-  } catch (_) {
-    // ignore naming spec errors on auto-apply
-  }
-}
 })();
 
 const $ = (sel) => document.querySelector(sel);
@@ -844,6 +813,38 @@ function deriveBaseFromUrl(url) {
     return normalizeBase(url);
   } catch {
     return url;
+  }
+}
+
+// Auto-apply naming spec from #namingSpec to root's direct subgroup groups (all-or-nothing)
+function applyNamingSpecIfAny() {
+  try {
+    const input = document.getElementById('namingSpec');
+    const spec = (input?.value || '').trim();
+    if (!spec || !state.tree) return;
+    const keys = spec.split('_').filter(Boolean);
+    if (!keys.length) return;
+    const grp = state.tree.pathMap.get('/') || state.tree.root;
+    if (!grp || grp.type !== 'group') return;
+    const children = (grp.children || [])
+      .map((name) => state.tree.pathMap.get(join(grp.path, name)))
+      .filter((n) => n && n.type === 'group');
+    if (!children.length) return;
+    const parsed = [];
+    for (const child of children) {
+      const name = basename(child.path);
+      const parts = name.split('_');
+      if (parts.length !== keys.length) return; // abort if any mismatch
+      const record = {};
+      for (let i = 0; i < keys.length; i++) record[keys[i]] = parts[i];
+      parsed.push({ node: child, attrs: record });
+    }
+    for (const { node, attrs } of parsed) {
+      if (!node.attrs || typeof node.attrs !== 'object') node.attrs = {};
+      for (const [k, v] of Object.entries(attrs)) node.attrs[k] = v;
+    }
+  } catch (e) {
+    // ignore auto-apply errors
   }
 }
 
