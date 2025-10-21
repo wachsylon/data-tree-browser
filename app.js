@@ -189,9 +189,11 @@ function renderActive() {
       parts.push(`<div class="section"><h3>Attributes</h3><pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre></div>`);
     }
     el.innerHTML = parts.join("");
-    // Hide aggregated panel for arrays
+    // Hide aggregated panel and two-col layout for arrays
     const agg = document.getElementById('aggPanel');
+    const stage = document.querySelector('main.stage');
     if (agg) { agg.hidden = true; agg.innerHTML = ""; }
+    if (stage) stage.classList.remove('two-col');
     updateHeaderControls();
     const inputEl = document.querySelector('#zarrUrl');
     if (inputEl && state.baseUrl) inputEl.value = humanReadableUri();
@@ -204,14 +206,17 @@ function renderActive() {
   el.innerHTML = parts.join("");
   // Render aggregated attributes in separate panel
   const agg = document.getElementById('aggPanel');
+  const stage = document.querySelector('main.stage');
   if (agg) {
     if (hasMultipleSubgroups(state.tree, node)) {
       const aggView = renderAggregatedGroupAttrs(state.tree, node);
       agg.hidden = false;
       agg.innerHTML = `<div class="node-title">Aggregated attributes <span class="badge">${escapeHtml(activePath)}</span></div>${aggView}`;
+      if (stage) stage.classList.add('two-col');
     } else {
       agg.hidden = true;
       agg.innerHTML = "";
+      if (stage) stage.classList.remove('two-col');
     }
   }
   updateHeaderControls();
@@ -745,9 +750,15 @@ function updateHeaderControls() {
 
 function buildPythonSnippet() {
   const uri = humanReadableUri();
+  const node = state.tree?.pathMap.get(state.activePath);
+  const isParent = node && node.type === 'group' && hasMultipleSubgroups(state.tree, node);
+  if (isParent) {
+    return `import xarray as xr\n` +
+           `xr.open_datatree(\n` +
+           `    ${JSON.stringify(uri)},\n` +
+           `    engine=\"zarr\"\n` +
+           `)`;
+  }
   return `import xarray as xr\n` +
-         `xr.open_datatree(\n` +
-         `    ${JSON.stringify(uri)},\n` +
-         `    engine=\"zarr\"\n` +
-         `)`;
+         `xr.open_zarr(${JSON.stringify(uri)})`;
 }

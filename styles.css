@@ -36,6 +36,8 @@ body {
 .tree .active { background: #e0f2fe; border: 1px solid #93c5fd; }
 .tree .badge { margin-right: 4px; }
 .stage { display: grid; place-items: center; padding: 24px; }
+.stage.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; place-items: initial; padding: 16px; }
+.stage.two-col .slide { width: 100%; }
 .slide {
   width: min(900px, 92vw);
   min-height: 320px;
