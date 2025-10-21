@@ -301,7 +301,7 @@ function setActive(path) {
   renderActive();
   // Update hash to include active subgroup
   if (state.baseUrl) {
-    const hash = `${encodeURIComponent(state.baseUrl)}|${encodeURIComponent(state.activePath)}`;
+    const hash = `${encodeURI(state.baseUrl)}|${encodeURI(state.activePath)}`;
     if (location.hash.slice(1) !== hash) location.hash = hash;
   }
 }
@@ -351,7 +351,7 @@ async function loadStore(baseUrl) {
     renderActive();
     setStatus("Loaded.");
     // Update hash for deep-linking (store | path)
-    const hash = `${encodeURIComponent(state.baseUrl)}|${encodeURIComponent(state.activePath)}`;
+    const hash = `${encodeURI(state.baseUrl)}|${encodeURI(state.activePath)}`;
     if (location.hash.slice(1) !== hash) location.hash = hash;
   } catch (err) {
     slideEl().innerHTML = `<div class="error">${escapeHtml(err.message || String(err))}</div>`;
@@ -367,8 +367,8 @@ function init() {
   const initial = location.hash ? location.hash.slice(1) : "";
   if (initial) {
     const [storeEnc, pathEnc] = initial.split("|");
-    const store = storeEnc ? decodeURIComponent(storeEnc) : "";
-    const path = pathEnc ? decodeURIComponent(pathEnc) : "/";
+    const store = storeEnc ? decodeURI(storeEnc) : "";
+    const path = pathEnc ? decodeURI(pathEnc) : "/";
     if (store) {
       const input = $("#zarrUrl");
       if (input) input.value = store;
@@ -382,8 +382,8 @@ function init() {
     const raw = location.hash ? location.hash.slice(1) : "";
     if (!raw) return;
     const [storeEnc, pathEnc] = raw.split("|");
-    const store = storeEnc ? decodeURIComponent(storeEnc) : "";
-    const path = pathEnc ? decodeURIComponent(pathEnc) : "/";
+    const store = storeEnc ? decodeURI(storeEnc) : "";
+    const path = pathEnc ? decodeURI(pathEnc) : "/";
     if (store && store !== state.baseUrl) {
       const input = $("#zarrUrl");
       if (input) input.value = store;
