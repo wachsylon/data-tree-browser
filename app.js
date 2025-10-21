@@ -265,6 +265,13 @@ function deepEqualSimple(a, b) {
   return false;
 }
 
+function hasMultipleSubgroups(tree, grpNode) {
+  const groupChildren = grpNode.children
+    .map((name) => tree.pathMap.get(join(grpNode.path, name)))
+    .filter((n) => n && n.type === "group");
+  return groupChildren.length > 1;
+}
+
 function breadcrumb(path) {
   const parts = path.split("/").filter(Boolean);
   const acc = ["/"];
