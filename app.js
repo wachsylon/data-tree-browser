@@ -220,6 +220,8 @@ function renderActive() {
   }
 
   parts.push(`<div class="node-title">Group <span class="badge">${escapeHtml(activePath)}</span></div>`);
+  // Apply naming spec to this group's direct subgroups (if any) before rendering cards
+  applyNamingSpecIfAny(node.path);
   const groupView = renderGroupLikeXarray(state.tree, node);
   parts.push(groupView);
   el.innerHTML = parts.join("");
@@ -263,19 +265,23 @@ function renderAggregatedGroupAttrs(tree, grpNode) {
   }
   const rows = [];
   for (const k of Array.from(allKeys).sort()) {
-    let same = true;
-    let firstSet = false;
-    let firstVal;
+    // collect only present values for this key
+    const present = [];
     for (const n of groupNodes) {
-      const v = (n.attrs || {})[k];
-      if (!firstSet) { firstVal = v; firstSet = true; continue; }
-      if (!deepEqualSimple(firstVal, v)) { same = false; break; }
+      const a = n.attrs || {};
+      if (Object.prototype.hasOwnProperty.call(a, k)) present.push(a[k]);
+    }
+    if (present.length === 0) continue; // skip keys not present anywhere
+    let allEqual = true;
+    for (let i = 1; i < present.length; i++) {
+      if (!deepEqualSimple(present[0], present[i])) { allEqual = false; break; }
     }
     let display;
-    if (same) {
-      if (firstVal == null) display = "null";
-      else if (typeof firstVal === "object") display = JSON.stringify(firstVal);
-      else display = String(firstVal);
+    if (allEqual) {
+      const v = present[0];
+      if (v == null) display = "null";
+      else if (typeof v === "object") display = JSON.stringify(v);
+      else display = String(v);
     } else {
       display = "(varies)";
     }
@@ -377,7 +383,7 @@ async function loadStore(baseUrl) {
     state.tree = buildTree(consolidated);
     state.activePath = "/";
     // Apply naming spec (if any) to root subgroups before rendering, so aggregated attrs include them
-    applyNamingSpecIfAny();
+    applyNamingSpecIfAny('/');
     renderActive();
     setStatus("Loaded.");
     // Update hash for deep-linking (store | path)
@@ -407,6 +413,14 @@ function init() {
       const code = buildPythonSnippet();
       try { await navigator.clipboard.writeText(code); setStatus('Python snippet copied to clipboard.'); }
       catch { setStatus('Failed to copy Python snippet.'); }
+    });
+  }
+  const visualizeBtn = document.getElementById('visualizeBtn');
+  if (visualizeBtn) {
+    visualizeBtn.addEventListener('click', () => {
+      const uri = humanReadableUri();
+      const url = `https://gridlook.pages.dev/#${encodeURI(uri)}`;
+      window.open(url, '_blank', 'noopener');
     });
   }
   const applyNamingBtn = document.getElementById('applyNamingBtn');
@@ -817,14 +831,15 @@ function deriveBaseFromUrl(url) {
 }
 
 // Auto-apply naming spec from #namingSpec to root's direct subgroup groups (all-or-nothing)
-function applyNamingSpecIfAny() {
+function applyNamingSpecIfAny(targetPath) {
   try {
     const input = document.getElementById('namingSpec');
     const spec = (input?.value || '').trim();
     if (!spec || !state.tree) return;
     const keys = spec.split('_').filter(Boolean);
     if (!keys.length) return;
-    const grp = state.tree.pathMap.get('/') || state.tree.root;
+    const p = targetPath || state.activePath || '/';
+    const grp = state.tree.pathMap.get(p) || state.tree.root;
     if (!grp || grp.type !== 'group') return;
     const children = (grp.children || [])
       .map((name) => state.tree.pathMap.get(join(grp.path, name)))
