@@ -868,6 +868,15 @@ function updateHeaderControls() {
   if (codeEl) {
     codeEl.textContent = buildPythonSnippet();
   }
+  const vizBtn = document.getElementById('visualizeBtn');
+  if (vizBtn) {
+    const node = state.tree?.pathMap.get(state.activePath);
+    if (!node || node.type !== 'group') { vizBtn.style.display = 'none'; return; }
+    const directGroupChildren = (node.children || [])
+      .map((name) => state.tree?.pathMap.get(join(node.path, name)))
+      .filter((n) => n && n.type === 'group');
+    vizBtn.style.display = directGroupChildren.length === 0 ? 'inline-block' : 'none';
+  }
 }
 
 function buildPythonSnippet() {
