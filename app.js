@@ -516,17 +516,14 @@ function escapeHtml(v) {
 // Simple inline SVG icon helper (xarray-like cue colors are set via CSS classes)
 function icon(kind = '') {
   const cls = `icon ${kind}`.trim();
-  if (kind === 'group') {
-    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8a2 2 0 0 1 2 2v3h-9l-2-2H4V6a2 2 0 0 1 2-2h4zm12 7v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9h7l2 2h11z"/></svg>`;
-  }
+  // Return badges for group/coord/data types instead of SVG icons
+  if (kind === 'group') return '<span class="badge">group</span>';
+  if (kind === 'coord') return '<span class="badge">coord</span>';
+  if (kind === 'data') return '<span class="badge">data</span>';
+  
+  // Keep SVG icons for other types (dim, attr, etc.)
   if (kind === 'attr') {
     return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>`;
-  }
-  if (kind === 'coord') {
-    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>`;
-  }
-  if (kind === 'data') {
-    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
   }
   if (kind === 'dim') {
     return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>`;
@@ -850,11 +847,19 @@ function renderGroupLikeXarray(tree, grpNode) {
   sections.push(`<div class="section"><h3>${icon('dim')}Dimensions</h3><div class="meta">${dimRows}</div></div>`);
 
   // Coordinates (collapsible)
-  const coordItems = coords.map(({ name, dims, shape, arr }) => {
+  const coordItems = coords.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
-    const dtStr = dt ? ` ${escapeHtml(dt)}` : "";
-    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}">${icon('coord')}<span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
-  }).join("") || `<div class=\"small\">(none)</div>`;
+    const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
+    return `
+      <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
+        <span class="badge" data-type="coord">coord</span>
+        <span class="varname">${escapeHtml(name)}</span>
+        ${formatDimsNames(dims)}
+        ${dtBadge}
+        ${renderVarAttrsDetails(arr)}
+        ${renderVarChunkDetails(arr)}
+      </div>`;
+  }).join("") || `<div class="small">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
@@ -865,11 +870,19 @@ function renderGroupLikeXarray(tree, grpNode) {
   `);
 
   // Data variables (collapsible)
-  const dataItems = dataVars.map(({ name, dims, shape, arr }) => {
+  const dataItems = dataVars.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
-    const dtStr = dt ? ` ${escapeHtml(dt)}` : "";
-    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}">${icon('data')}<span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
-  }).join("") || `<div class=\"small\">(none)</div>`;
+    const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
+    return `
+      <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
+        <span class="badge" data-type="data">data</span>
+        <span class="varname">${escapeHtml(name)}</span>
+        ${formatDimsNames(dims)}
+        ${dtBadge}
+        ${renderVarAttrsDetails(arr)}
+        ${renderVarChunkDetails(arr)}
+      </div>`;
+  }).join("") || `<div class="small">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
@@ -884,7 +897,11 @@ function renderGroupLikeXarray(tree, grpNode) {
     .map((name) => tree.pathMap.get(join(grpNode.path, name)))
     .filter((n) => n && n.type === "group");
   if (groupChildren.length > 0) {
-    const groupItems = groupChildren.map((g) => `<div>${icon('group')}<span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("");
+    const groupItems = groupChildren.map((g, i) => `
+      <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
+        <span class="badge" data-type="group">group</span>
+        <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a>
+      </div>`).join("");
     sections.push(`<div class="section"><h3>${icon('group')}Groups</h3><div class="codeblock">${groupItems}</div></div>`);
   }
 
