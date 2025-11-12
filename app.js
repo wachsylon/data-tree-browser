@@ -938,7 +938,7 @@ function renderGroupLikeXarray(tree, grpNode) {
         <div class="codeblock">${coordItems}</div>
       </details>
     </div>
-  `);
+  `); }
     
     
   // Data variables (collapsible)
