@@ -891,12 +891,14 @@ function renderGroupLikeXarray(tree, grpNode) {
   const nDims = dimList.length;
   
   // Create summary line
-  const summaryHtml = `
+  if (nDims > 0) {
+    const summaryHtml = `
     <div class="xr-summary">
       Size: ${formatSize(totalBytes)} · Dimensions: ${nDims} · Coordinates: ${nCoords} · Data variables: ${nData}
     </div>
   `;
-  sections.push(summaryHtml);
+    sections.push(summaryHtml);
+  }
   // Dimensions
   const dimRows = dimList.length ? dimList.map((d) => `<div class="label">${escapeHtml(d)}</div><div class="value">${escapeHtml(dimSizes.get(d) ?? "?")}</div>`).join("") : `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>${icon('dim')}Dimensions</h3><div class="meta">${dimRows}</div></div>`);
@@ -919,7 +921,8 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  sections.push(`
+  if (coordItems.length > 0) { 
+    sections.push(`
     <div class="section">
       <details open>
         <summary>${icon('coord')}Coordinates</summary>
@@ -927,7 +930,17 @@ function renderGroupLikeXarray(tree, grpNode) {
       </details>
     </div>
   `);
-
+  } else {
+    sections.push(`
+    <div class="section">
+      <details>
+        <summary>${icon('coord')}Coordinates</summary>
+        <div class="codeblock">${coordItems}</div>
+      </details>
+    </div>
+  `);
+    
+    
   // Data variables (collapsible)
   const dataItems = dataVars.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
@@ -946,7 +959,8 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  sections.push(`
+  if (dataItems.length > 0) {
+    sections.push(`
     <div class="section">
       <details open>
         <summary>${icon('data')}Data variables</summary>
@@ -954,7 +968,16 @@ function renderGroupLikeXarray(tree, grpNode) {
       </details>
     </div>
   `);
-
+  } else {
+    sections.push(`
+    <div class="section">
+      <details>
+        <summary>${icon('data')}Data variables</summary>
+        <div class="codeblock">${dataItems}</div>
+      </details>
+    </div>
+  `);
+  }
   // Child groups (always show immediate child groups)
   const groupChildren = grpNode.children
     .map((name) => tree.pathMap.get(join(grpNode.path, name)))
