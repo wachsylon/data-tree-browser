@@ -518,6 +518,68 @@ function escapeHtml(v) {
     .replaceAll('"', "&quot;");
 }
 
+// Load first and last values of a time array
+async function loadTimeArrayValues(baseUrl, path) {
+  try {
+    // Ensure baseUrl ends with a slash
+    const normalizedBase = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    const arrayUrl = `${normalizedBase}${path}`;
+    
+    // Import Zarrita dynamically
+    const { open } = await import("https://esm.sh/zarrita@0.4?bundle");
+    const store = open({ url: arrayUrl });
+    
+    // Get array metadata
+    const arr = await store.getArray();
+    const length = arr.shape[0];
+    
+    // Load first and last values
+    const firstValue = await arr.get([0]);
+    const lastValue = await arr.get([length - 1]);
+    
+    return { first: firstValue, last: lastValue };
+  } catch (error) {
+    console.error('Error loading time array:', error);
+    return { error: error.message };
+  }
+}
+
+// Handle time array button click
+window.handleTimeArrayClick = async function(button, baseUrl, path) {
+  const originalText = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = 'Loading...';
+  
+  try {
+    const result = await loadTimeArrayValues(baseUrl, path);
+    
+    if (result.error) {
+      button.innerHTML = `Error: ${result.error}`;
+      return;
+    }
+    
+    // Create a div to display the values
+    const valuesDiv = document.createElement('div');
+    valuesDiv.className = 'time-array-values';
+    valuesDiv.innerHTML = `
+      <div>First: ${escapeHtml(String(result.first))}</div>
+      <div>Last: ${escapeHtml(String(result.last))}</div>
+    `;
+    
+    // Insert after the button
+    button.parentNode.insertBefore(valuesDiv, button.nextSibling);
+    
+    // Remove the button after showing values
+    button.remove();
+  } catch (error) {
+    button.innerHTML = `Error: ${error.message}`;
+    setTimeout(() => {
+      button.innerHTML = originalText;
+      button.disabled = false;
+    }, 2000);
+  }
+};
+
 function icon(kind = '') {
   const cls = `icon ${kind}`.trim();
   if (kind === 'group') {
@@ -991,21 +1053,41 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dimRows = dimList.length ? dimList.map((d) => `<div class="label">${escapeHtml(d)}</div><div class="value">${escapeHtml(dimSizes.get(d) ?? "?")}</div>`).join("") : `<div class="small">(none)</div>`;
   sections.push(`<div class="section"><h3>${icon('dim')}Dimensions</h3><div class="meta">${dimRows}</div></div>`);
 
+  // Function to render time array button
+  const renderTimeArrayButton = (name, path) => {
+    if (name.toLowerCase().includes('time') && state.baseUrl) {
+      return `
+        <button class="btn-time-array" 
+                onclick="handleTimeArrayClick(this, '${escapeHtml(state.baseUrl)}', '${escapeHtml(path)}')"
+                title="Load first and last time values">
+          Load time values
+        </button>`;
+    }
+    return '';
+  };
+
   // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
     const varId = `var-${i}-${Math.random().toString(36).substr(2, 9)}`;
+    const timeButton = renderTimeArrayButton(name, arr.path || name);
+    
     return `
       <div class="var-container">
         <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-          <span class="varname">${escapeHtml(name)}</span>
-          ${formatDimsNames(dims)}
-          ${dtBadge}
-          <div class="var-actions">
-            ${renderVarAttrsDetails(varId, arr)}
-            ${renderVarChunkDetails(varId, arr)}
+          <div class="var-header">
+            <div class="var-info">
+              <span class="varname">${escapeHtml(name)}</span>
+              ${formatDimsNames(dims)}
+              ${dtBadge}
+            </div>
+            <div class="var-actions">
+              ${renderVarAttrsDetails(varId, arr)}
+              ${renderVarChunkDetails(varId, arr)}
+            </div>
           </div>
+          ${timeButton ? `<div class="time-array-container">${timeButton}</div>` : ''}
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;

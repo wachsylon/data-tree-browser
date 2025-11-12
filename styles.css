@@ -175,17 +175,81 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 
 /* Variable actions (chunks, attributes) */
 .var-actions {
-  margin-left: auto;
   display: flex;
   gap: 4px;
   flex-shrink: 0;
-  align-self: center;
+  margin-left: auto;
+  padding-left: 8px;
+  align-self: flex-start;
 }
 
 /* Style for active button when details are shown */
 .var-actions .btn-icon.active {
   background-color: #e9ecef;
   color: #111827;
+}
+
+/* Time array button styles */
+.time-array-container {
+  padding: 4px 0 0 0;
+  margin-left: -4px;
+  background-color: inherit;
+  border-radius: 0 0 4px 4px;
+}
+
+.btn-time-array {
+  background-color: #f8f9fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
+}
+
+.btn-time-array:hover {
+  background-color: #e9ecef;
+  border-color: #cbd5e0;
+}
+
+.btn-time-array:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.time-array-values {
+  margin-top: 6px;
+  padding: 6px 8px;
+  background-color: #f1f5f9;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
+  color: #334155;
+}
+
+.time-array-values div {
+  margin: 2px 0;
+}
+
+/* Adjust for dark mode if needed */
+@media (prefers-color-scheme: dark) {
+  .btn-time-array {
+    background-color: #2d3748;
+    border-color: #4a5568;
+    color: #e2e8f0;
+  }
+  
+  .btn-time-array:hover {
+    background-color: #4a5568;
+    border-color: #718096;
+  }
+  
+  .time-array-values {
+    background-color: #2d3748;
+    color: #e2e8f0;
+  }
 }
 
 .var-actions .btn-icon {
@@ -224,12 +288,41 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 /* Style for the variable line */
 .varline {
   display: flex;
-  align-items: center;
-  padding: 6px 10px;
+  flex-direction: column;
+  padding: 8px 10px;
   border-radius: 4px;
   font-family: 'Fira Code', 'Roboto Mono', monospace;
   width: 100%;
   box-sizing: border-box;
+  gap: 6px;
+}
+
+.var-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+  gap: 10px;
+}
+
+.var-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0; /* Allows text truncation */
+}
+
+.varname {
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 /* Style for expanded attribute/chunk details */
@@ -445,6 +538,24 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   
   .var-details-content {
     overflow-x: auto;
+  }
+  
+  .var-header {
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .var-actions {
+    margin-left: 0;
+    padding-left: 0;
+    align-self: flex-start;
+    width: 100%;
+    padding-top: 4px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .varname {
+    max-width: 100%;
   }
 }
 
