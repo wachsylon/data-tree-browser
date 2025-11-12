@@ -290,15 +290,20 @@ function renderActive() {
   el.innerHTML = parts.join("");
   // Render aggregated attributes in separate panel
   const agg = document.getElementById('aggPanel');
+  const aggContainer = document.querySelector('.agg-panel-container');
   const stage = document.querySelector('main.stage');
-  if (agg) {
+  
+  if (agg && aggContainer) {
+    // Show the container first
+    aggContainer.hidden = false;
+    
     if (hasMultipleSubgroups(state.tree, node)) {
       const aggView = renderAggregatedGroupAttrs(state.tree, node);
       agg.hidden = false;
       agg.innerHTML = `<div class="node-title">Aggregated attributes <span class="badge">${escapeHtml(activePath)}</span></div>${aggView}`;
       if (stage) stage.classList.add('two-col');
     } else {
-      agg.hidden = true;
+      aggContainer.hidden = true;
       agg.innerHTML = "";
       if (stage) stage.classList.remove('two-col');
     }
@@ -639,24 +644,42 @@ function init() {
   // Sidebar toggle functionality
   const sidebar = document.getElementById('sidebar');
   const sidebarToggle = document.getElementById('sidebarToggle');
+  const aggPanel = document.getElementById('aggPanel');
+  const aggPanelToggle = document.getElementById('aggPanelToggle');
+  const aggPanelContainer = document.querySelector('.agg-panel-container');
   
   // Check for mobile view
   const isMobileView = window.matchMedia('(max-width: 900px)').matches;
   
-  // Get saved state or use default based on view
+  // Get saved states or use defaults based on view
   let isSidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+  let isAggPanelCollapsed = localStorage.getItem('aggPanelCollapsed');
   
-  // If no saved state, use default based on view
+  // If no saved state, use defaults based on view
   if (isSidebarCollapsed === null) {
     isSidebarCollapsed = isMobileView ? 'true' : 'false';
     localStorage.setItem('sidebarCollapsed', isSidebarCollapsed);
   }
   
-  // Apply the collapsed state
+  // Initialize aggPanel state if not set
+  if (isAggPanelCollapsed === null) {
+    isAggPanelCollapsed = 'false'; // Default to expanded
+    localStorage.setItem('aggPanelCollapsed', isAggPanelCollapsed);
+  }
+  
+  // Apply the collapsed states
   if (isSidebarCollapsed === 'true') {
     sidebar.classList.add('collapsed');
   } else {
     sidebar.classList.remove('collapsed');
+  }
+  
+  if (aggPanelContainer) {
+    if (isAggPanelCollapsed === 'true') {
+      aggPanelContainer.classList.add('collapsed');
+    } else {
+      aggPanelContainer.classList.remove('collapsed');
+    }
   }
   
   // Toggle sidebar on button click
@@ -665,6 +688,15 @@ function init() {
       sidebar.classList.toggle('collapsed');
       // Save state to localStorage
       localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    });
+  }
+  
+  // Toggle aggPanel on button click
+  if (aggPanelToggle && aggPanelContainer) {
+    aggPanelToggle.addEventListener('click', () => {
+      aggPanelContainer.classList.toggle('collapsed');
+      // Save state to localStorage
+      localStorage.setItem('aggPanelCollapsed', aggPanelContainer.classList.contains('collapsed'));
     });
   }
 
