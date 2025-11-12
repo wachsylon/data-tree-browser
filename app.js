@@ -921,24 +921,15 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  if (coordItems.length > 0) { 
-    sections.push(`
-    <div class="section">
-      <details open>
-        <summary>${icon('coord')}Coordinates</summary>
-        <div class="codeblock">${coordItems}</div>
-      </details>
-    </div>
-  `);
-  } else {
-    sections.push(`
-    <div class="section">
-      <details>
-        <summary>${icon('coord')}Coordinates</summary>
-        <div class="codeblock">${coordItems}</div>
-      </details>
-    </div>
-  `); }
+  const hasCoords = coordItems.length > 0;
+  sections.push(`
+  <div class="section">
+    <details ${hasCoords?"":"open"}>
+      <summary>${icon('coord')}Coordinates</summary>
+      <div class="codeblock">${coordItems}</div>
+    </details>
+  </div>
+`);
     
     
   // Data variables (collapsible)
@@ -959,25 +950,15 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  if (dataItems.length > 0) {
-    sections.push(`
-    <div class="section">
-      <details open>
-        <summary>${icon('data')}Data variables</summary>
-        <div class="codeblock">${dataItems}</div>
-      </details>
-    </div>
-  `);
-  } else {
-    sections.push(`
-    <div class="section">
-      <details>
-        <summary>${icon('data')}Data variables</summary>
-        <div class="codeblock">${dataItems}</div>
-      </details>
-    </div>
-  `);
-  }
+  const hasDataItems = dataItems.length >0;
+  sections.push(`
+  <div class="section">
+    <details ${hasDataItems?"":"open"}>
+      <summary>${icon('data')}Data variables</summary>
+      <div class="codeblock">${dataItems}</div>
+    </details>
+  </div>
+`);
   // Child groups (always show immediate child groups)
   const groupChildren = grpNode.children
     .map((name) => tree.pathMap.get(join(grpNode.path, name)))
