@@ -27,7 +27,7 @@ body {
 .hints { display: flex; gap: 12px; color: #6b7280; font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
 
 .content { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 16px; }
-.sidebar { background: white; border-right: 1px solid #e5e7eb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; overflow: auto; height: calc(100vh - 180px); }
+.sidebar { background: white; border-right: 1px solid #e5e7eb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; overflow: auto; }
 .sidebar__placeholder { padding: 8px; }
 .tree { list-style: none; padding-left: 0; margin: 0; font-size: 14px; }
 .tree li { margin: 2px 0; }
@@ -254,7 +254,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 /* Responsive */
 @media (max-width: 900px) {
   .content { display: block; padding: 12px; }
-  .sidebar { height: auto; max-height: 40vh; margin-bottom: 12px; }
+  .sidebar { height: 100%; margin-bottom: 12px; }
   .stage { padding: 0; }
   .slide { width: 100%; padding: 16px; }
   .hints { font-size: 11px; gap: 8px; }
