@@ -35,7 +35,7 @@ body {
 .tree a:hover { background: #f3f4f6; }
 .tree .active { background: #e0f2fe; border: 1px solid #93c5fd; }
 .tree .badge { margin-right: 4px; }
-.stage { display: grid; place-items: center; padding: 24px; }
+.stage { display: grid; place-items: center; padding: 24px; margin-top: 6px;}
 .stage.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; place-items: initial; padding: 16px; }
 .stage.two-col .slide { width: 100%; }
 .slide {
