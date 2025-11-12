@@ -828,20 +828,57 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dimList = Array.from(allDims);
 
   const sections = [];
-  // Xarray-like summary banner
-  const dimSummary = dimList.map((d) => `${d}: ${dimSizes.get(d) ?? '?'}`).join(', ');
+  // Calculate total size in bytes
+  let totalBytes = 0;
+  arrays.forEach(arr => {
+    if (arr.zarray?.shape && arr.zarray?.dtype) {
+      const shape = Array.isArray(arr.zarray.shape) ? arr.zarray.shape : [arr.zarray.shape];
+      const size = shape.reduce((a, b) => a * b, 1);
+      
+      // Get bytes per element from dtype
+      const dtype = String(arr.zarray.dtype);
+      let bytesPerElement = 4; // default to float32/float64 size
+      if (dtype.includes('int8') || dtype.includes('uint8') || dtype.includes('bool')) {
+        bytesPerElement = 1;
+      } else if (dtype.includes('int16') || dtype.includes('uint16')) {
+        bytesPerElement = 2;
+      } else if (dtype.includes('int32') || dtype.includes('uint32') || dtype.includes('float32')) {
+        bytesPerElement = 4;
+      } else if (dtype.includes('int64') || dtype.includes('uint64') || dtype.includes('float64')) {
+        bytesPerElement = 8;
+      }
+      
+      totalBytes += size * bytesPerElement;
+    }
+  });
+
+  // Format size with appropriate unit
+  const formatSize = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    const kb = bytes / 1024;
+    if (kb < 1024) return `${kb.toFixed(1)} KB`;
+    const mb = kb / 1024;
+    if (mb < 1024) return `${mb.toFixed(1)} MB`;
+    const gb = mb / 1024;
+    return `${gb.toFixed(0)} GB`;
+  };
+
+  // Count coordinates
   const nCoords = arrays.filter((a) => {
     const name = basename(a.path);
     const shp = Array.isArray(a.zarray?.shape) ? a.zarray.shape : [];
     const dims = dimsByVar.get(a) || [];
-    return (shp.length === 1 && coordCandidates.has(name)) || (dims.length === 1 && (dims[0] === name || coordCandidates.has(name)));
+    return (shp.length === 1 && coordCandidates.has(name)) || 
+           (dims.length === 1 && (dims[0] === name || coordCandidates.has(name)));
   }).length;
+
   const nData = arrays.length - nCoords;
-  const sizeHint = '';
+  const nDims = dimList.length;
+  
+  // Create summary line
   const summaryHtml = `
     <div class="xr-summary">
-      &lt;xarray.Dataset&gt; ${sizeHint}
-      Dimensions: (${escapeHtml(dimSummary)}) · Coordinates: ${nCoords} · Data variables: ${nData}
+      Size: ${formatSize(totalBytes)} · Dimensions: ${nDims} · Coordinates: ${nCoords} · Data variables: ${nData}
     </div>
   `;
   sections.push(summaryHtml);
