@@ -36,9 +36,16 @@
     </header>
 
     <div class="content">
-      <aside class="sidebar" id="sidebar" aria-label="Hierarchy">
-        <div class="sidebar__placeholder small">Load a store to view the hierarchy</div>
-      </aside>
+      <div class="sidebar-container">
+        <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <aside class="sidebar" id="sidebar" aria-label="Hierarchy">
+          <div class="sidebar__placeholder small">Load a store to view the hierarchy</div>
+        </aside>
+      </div>
       <main class="stage">
         <section id="slide" class="slide" tabindex="0" aria-live="polite">
           <div class="placeholder">Enter a Zarr store URL and click Load.</div>

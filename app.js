@@ -636,6 +636,38 @@ async function loadStore(baseUrl) {
 }
 
 function init() {
+  // Sidebar toggle functionality
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  
+  // Check for mobile view
+  const isMobileView = window.matchMedia('(max-width: 900px)').matches;
+  
+  // Get saved state or use default based on view
+  let isSidebarCollapsed = localStorage.getItem('sidebarCollapsed');
+  
+  // If no saved state, use default based on view
+  if (isSidebarCollapsed === null) {
+    isSidebarCollapsed = isMobileView ? 'true' : 'false';
+    localStorage.setItem('sidebarCollapsed', isSidebarCollapsed);
+  }
+  
+  // Apply the collapsed state
+  if (isSidebarCollapsed === 'true') {
+    sidebar.classList.add('collapsed');
+  } else {
+    sidebar.classList.remove('collapsed');
+  }
+  
+  // Toggle sidebar on button click
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      // Save state to localStorage
+      localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+    });
+  }
+
   $("#loadBtn").addEventListener("click", onLoadClick);
   $("#zarrUrl").addEventListener("keydown", (e) => { if (e.key === "Enter") onLoadClick(); });
   // Header controls

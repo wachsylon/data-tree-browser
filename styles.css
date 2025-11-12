@@ -26,8 +26,64 @@ body {
 
 .hints { display: flex; gap: 12px; color: #6b7280; font-size: 12px; margin-top: 6px; flex-wrap: wrap; }
 
-.content { display: grid; grid-template-columns: 280px 1fr; gap: 16px; padding: 16px; }
-.sidebar { background: white; border-right: 1px solid #e5e7eb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px; overflow: auto; }
+.content { display: grid; grid-template-columns: auto 1fr; gap: 0; padding: 16px; position: relative; }
+.sidebar-container { 
+  position: relative;
+  height: 100%;
+}
+.sidebar { 
+  background: white; 
+  border: 1px solid #e5e7eb; 
+  border-radius: 12px; 
+  padding: 12px; 
+  overflow: auto;
+  width: 280px;
+  height: 100%;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateX(0);
+  opacity: 1;
+  box-sizing: border-box;
+}
+
+.sidebar.collapsed {
+  position: absolute;
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  right: -32px;
+  top: 0;
+  width: 32px;
+  height: 40px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: transform 0.3s ease, background-color 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+  background-color: #f3f4f6;
+}
+
+.sidebar-toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed + .sidebar-toggle svg {
+  transform: rotate(180deg);
+}
 .sidebar__placeholder { padding: 8px; }
 .tree { list-style: none; padding-left: 0; margin: 0; font-size: 14px; }
 .tree li { margin: 2px 0; }
@@ -254,8 +310,36 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 
 /* Responsive */
 @media (max-width: 900px) {
-  .content { display: block; padding: 12px; }
-  .sidebar { height: 100%; margin-bottom: 12px; }
+  .content { 
+    display: flex; 
+    flex-direction: column;
+    padding: 12px; 
+  }
+  .sidebar { 
+    height: auto;
+    max-height: 300px;
+    margin-bottom: 12px;
+    position: relative;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    width: 100% !important;
+  }
+  .sidebar.collapsed {
+    max-height: 40px;
+    overflow: hidden;
+    opacity: 1;
+    transform: none;
+    position: relative;
+  }
+  .sidebar-toggle {
+    display: flex;
+    right: 0;
+    top: 0;
+    border-radius: 0 12px 0 0;
+    width: 40px;
+    height: 40px;
+  }
   .stage { padding: 0; }
   .slide { width: 100%; padding: 16px; }
   .hints { font-size: 11px; gap: 8px; }
