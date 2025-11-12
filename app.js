@@ -250,7 +250,7 @@ function renderActive() {
     const chunkMatrix = renderChunkMatrix(node);
     const hasAttrs = node.attrs && Object.keys(node.attrs).length;
     const chunksSection = chunkMatrix ? `
-      <div class="section-col">
+      <div class="section-row">
         <details open>
           <summary>Chunks</summary>
           ${chunkMatrix}
@@ -258,7 +258,7 @@ function renderActive() {
       </div>
     ` : "";
     const attrsSection = `
-      <div class="section-col">
+      <div class="section-row">
         <details ${hasAttrs?"":"open"}>
           <summary>Attributes</summary>
           ${hasAttrs ? `<pre class="codeblock">${escapeHtml(JSON.stringify(node.attrs, null, 2))}</pre>` : `<div class="codeblock"><div class="small">(none)</div></div>`}
