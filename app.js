@@ -1078,13 +1078,15 @@ function renderGroupLikeXarray(tree, grpNode) {
         <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
           <div class="var-header">
             <div class="var-info">
-              <span class="varname">${escapeHtml(name)}</span>
-              ${formatDimsNames(dims)}
-              ${dtBadge}
-            </div>
-            <div class="var-actions">
-              ${renderVarAttrsDetails(varId, arr)}
-              ${renderVarChunkDetails(varId, arr)}
+              <span class="var-header-text">
+                <span class="var-name">${escapeHtml(name)}</span>
+                <span class="var-dims">${formatDimsNames(dims)}</span>
+                ${dtBadge}
+                <span class="var-actions">
+                  ${renderVarAttrsDetails(varId, arr)}
+                  ${renderVarChunkDetails(varId, arr)}
+                </span>
+              </span>
             </div>
           </div>
           ${timeButton ? `<div class="time-array-container">${timeButton}</div>` : ''}

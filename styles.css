@@ -161,11 +161,52 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .var-container:nth-child(even) .varline { background-color: #f1f3f5; }
 .var-container .varline:hover { background-color: #e9ecef; }
 
+/* Combined variable header text */
+.var-header-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.var-header-text > *:not(.var-actions) {
+  flex-shrink: 0;
+}
+
+.var-header-text .var-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+}
+
+.var-name {
+  font-weight: 500;
+  color: #111827;
+}
+
+.var-dims {
+  color: #4b5563;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
 /* Style for data type badges */
 .varline .type-badge {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
   background: #e9ecef;
   color: #495057;
+  font-size: 0.8em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
   border: 1px solid #dee2e6;
   padding: 0 5px;
   border-radius: 3px;
@@ -173,14 +214,11 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   margin-left: 4px;
 }
 
-/* Variable actions (chunks, attributes) */
+/* Variable actions (chunks, attributes) - now moved into var-header-text */
 .var-actions {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
-  margin-left: auto;
-  padding-left: 8px;
-  align-self: flex-start;
 }
 
 /* Style for active button when details are shown */
@@ -314,16 +352,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   min-width: 0; /* Allows text truncation */
 }
 
-.varname {
-  font-weight: 500;
-  color: #111827;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 200px;
-  display: inline-block;
-  vertical-align: middle;
-}
+/* Removed old varname styles as they're now part of var-header-text */
 
 /* Style for expanded attribute/chunk details */
 .var-details {
@@ -546,12 +575,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   }
   
   .var-actions {
-    margin-left: 0;
+    margin-left: auto;
     padding-left: 0;
     align-self: flex-start;
-    width: 100%;
-    padding-top: 4px;
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
   }
   
   .varname {
