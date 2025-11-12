@@ -518,24 +518,6 @@ function escapeHtml(v) {
     .replaceAll('"', "&quot;");
 }
 
-// Toggle details sections
-// Make toggleDetails available globally
-window.toggleDetails = function(id) {
-  const details = document.getElementById(id);
-  if (details) {
-    // Check both inline style and computed style to determine current state
-    const isHidden = details.style.display === 'none' || 
-                   (details.style.display === '' && window.getComputedStyle(details).display === 'none');
-    details.style.display = isHidden ? 'block' : 'none';
-    // Update aria-expanded state for the button
-    const button = document.querySelector(`[data-target="${id}"]`);
-    if (button) {
-      button.setAttribute('aria-expanded', isHidden);
-    }
-  }
-};
-
-// Simple inline SVG icon helper (xarray-like cue colors are set via CSS classes)
 function icon(kind = '') {
   const cls = `icon ${kind}`.trim();
   if (kind === 'group') {
@@ -555,6 +537,46 @@ function icon(kind = '') {
   }
   return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>`;
 }
+
+// Toggle details sections
+window.toggleDetails = function(id) {
+  const details = document.getElementById(id);
+  if (!details) return;
+  
+  // Get the var-container parent
+  const container = details.closest('.var-container');
+  if (!container) return;
+  
+  // Toggle the display of the details section
+  const isVisible = details.style.display === 'block' || 
+                  (details.style.display === '' && window.getComputedStyle(details).display === 'block');
+  
+  details.style.display = isVisible ? 'none' : 'block';
+  
+  // Update the button's aria-expanded attribute for accessibility
+  const button = document.querySelector(`[data-target="${id}"]`);
+  if (button) {
+    const isExpanded = button.getAttribute('aria-expanded') === 'true';
+    button.setAttribute('aria-expanded', !isExpanded);
+    button.classList.toggle('active', !isExpanded);
+  }
+  
+  // If another details section is open in the same container, close it
+  if (!isVisible) {
+    const otherDetails = container.querySelectorAll('.var-details');
+    otherDetails.forEach(detail => {
+      if (detail.id !== id && detail.style.display === 'block') {
+        detail.style.display = 'none';
+        // Update the other button's state
+        const otherButton = document.querySelector(`[data-target="${detail.id}"]`);
+        if (otherButton) {
+          otherButton.setAttribute('aria-expanded', 'false');
+          otherButton.classList.remove('active');
+        }
+      }
+    });
+  }
+};
 
 function setActive(path) {
   // Prevent setting arrays as active; keep only groups active

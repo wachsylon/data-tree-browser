@@ -182,6 +182,12 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   align-self: center;
 }
 
+/* Style for active button when details are shown */
+.var-actions .btn-icon.active {
+  background-color: #e9ecef;
+  color: #111827;
+}
+
 .var-actions .btn-icon {
   background: none;
   border: none;
@@ -212,46 +218,61 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   display: flex;
   flex-direction: column;
   width: 100%;
+  margin-bottom: 4px;
+}
+
+/* Style for the variable line */
+.varline {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Fira Code', 'Roboto Mono', monospace;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Style for expanded attribute/chunk details */
 .var-details {
   width: 100%;
-  background: transparent;
+  background: #f8f9fa;
   margin: 0;
-  padding: 0 10px 0 30px;
+  padding: 8px 10px 8px 30px;
   box-sizing: border-box;
-  border: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+  border-left: 2px solid #e5e7eb;
+  border-right: 2px solid #e5e7eb;
+  border-bottom: 2px solid #e5e7eb;
+  border-radius: 0 0 4px 4px;
+  display: none;
+  margin-top: -4px; /* Pull up to connect with the row above */
 }
 
 /* Show details when not hidden */
 .var-details:not([hidden]) {
-  display: flex;
+  display: block;
 }
 
 /* Style for details content */
 .var-details-content {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 4px 0;
+  display: block;
   width: 100%;
 }
 
-.var-details-content {
-  overflow: hidden;
-  transition: max-height 0.2s ease-out;
+/* Adjust for even/odd rows */
+.var-container:nth-child(odd) .varline {
+  background-color: #f8f9fa;
 }
 
-/* Ensure the variable line takes full width */
-.varline {
-  width: 100%;
-  box-sizing: border-box;
+.var-container:nth-child(even) .varline {
+  background-color: #f1f3f5;
+}
+
+.var-container:nth-child(odd) .var-details {
+  background-color: #f8f9fa;
+}
+
+.var-container:nth-child(even) .var-details {
+  background-color: #f1f3f5;
 }
 
 /* Adjust the codeblock to be full width */
@@ -416,17 +437,14 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   .controls button { width: 100%; }
 }
 
-/* Make var-details stack vertically on small screens */
+/* Make var-details full width on small screens */
 @media (max-width: 768px) {
   .var-details {
-    flex-direction: column;
-    align-items: flex-start;
     padding-left: 20px;
   }
   
   .var-details-content {
-    flex-direction: column;
-    align-items: flex-start;
+    overflow-x: auto;
   }
 }
 
