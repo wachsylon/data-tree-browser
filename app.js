@@ -958,7 +958,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   const hasCoords = nCoords > 0;
   sections.push(`
   <div class="section">
-    <details ${hasCoords?"":"open"}>
+    <details ${hasCoords ? 'open' : ''}>
       <summary>${icon('coord')}Coordinates</summary>
       <div class="codeblock">${coordItems}</div>
     </details>
@@ -987,7 +987,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   const hasDataItems = nData > 0;
   sections.push(`
   <div class="section">
-    <details ${hasDataItems?"":"open"}>
+    <details ${hasDataItems ? "open":""}>
       <summary>${icon('data')}Data variables</summary>
       <div class="codeblock">${dataItems}</div>
     </details>
