@@ -518,7 +518,9 @@ function escapeHtml(v) {
 window.toggleDetails = function(id) {
   const details = document.getElementById(id);
   if (details) {
-    const isHidden = details.style.display === 'none';
+    // Check both inline style and computed style to determine current state
+    const isHidden = details.style.display === 'none' || 
+                   (details.style.display === '' && window.getComputedStyle(details).display === 'none');
     details.style.display = isHidden ? 'block' : 'none';
     // Update aria-expanded state for the button
     const button = document.querySelector(`[data-target="${id}"]`);
@@ -921,7 +923,7 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  const hasCoords = coords.length > 0;
+  const hasCoords = nCoords > 0;
   sections.push(`
   <div class="section">
     <details ${hasCoords?"":"open"}>
@@ -950,7 +952,7 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  const hasDataItems = dataVars.length >0;
+  const hasDataItems = nData > 0;
   sections.push(`
   <div class="section">
     <details ${hasDataItems?"":"open"}>
