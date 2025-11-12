@@ -98,9 +98,11 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   gap: 8px;
   position: relative;
 }
-.varline:nth-child(odd) { background-color: #f8f9fa; }
-.varline:nth-child(even) { background-color: #f1f3f5; }
-.varline:hover { background-color: #e9ecef; }
+
+/* Ensure alternating colors work with the container structure */
+.var-container:nth-child(odd) .varline { background-color: #f8f9fa; }
+.var-container:nth-child(even) .varline { background-color: #f1f3f5; }
+.var-container .varline:hover { background-color: #e9ecef; }
 
 /* Style for data type badges */
 .varline .type-badge {
@@ -159,16 +161,26 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   width: 100%;
   background: white;
   margin: 0;
-  padding: 8px 12px 8px 12px;
+  padding: 8px 12px 8px 36px; /* Add left padding to align with content */
   border-top: 1px solid #e9ecef;
   font-size: 13px;
   color: #495057;
   box-sizing: border-box;
+  display: none; /* Start hidden, will be toggled by JS */
 }
 
-/* Animation for expanding/collapsing */
-.var-details[hidden] {
-  display: none;
+/* Show details when not hidden */
+.var-details:not([hidden]) {
+  display: block;
+}
+
+/* Keep the background color consistent with the parent row */
+.var-container:nth-child(odd) .var-details {
+  background-color: #f8f9fa;
+}
+
+.var-container:nth-child(even) .var-details {
+  background-color: #f1f3f5;
 }
 
 .var-details-content {

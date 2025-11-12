@@ -514,17 +514,19 @@ function escapeHtml(v) {
 }
 
 // Toggle details sections
-function toggleDetails(id) {
+// Make toggleDetails available globally
+window.toggleDetails = function(id) {
   const details = document.getElementById(id);
   if (details) {
-    details.hidden = !details.hidden;
+    const isHidden = details.style.display === 'none';
+    details.style.display = isHidden ? 'block' : 'none';
     // Update aria-expanded state for the button
-    const button = details.previousElementSibling;
-    if (button && button.matches('button')) {
-      button.setAttribute('aria-expanded', !details.hidden);
+    const button = document.querySelector(`[data-target="${id}"]`);
+    if (button) {
+      button.setAttribute('aria-expanded', isHidden);
     }
   }
-}
+};
 
 // Simple inline SVG icon helper (xarray-like cue colors are set via CSS classes)
 function icon(kind = '') {
@@ -903,7 +905,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   const coordItems = coords.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
-    const varId = `var-${Date.now()}-${i}`;
+    const varId = `var-${i}-${Math.random().toString(36).substr(2, 9)}`;
     return `
       <div class="var-container">
         <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
@@ -930,7 +932,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dataItems = dataVars.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
-    const varId = `var-${Date.now()}-${i + 1000}`; // Different prefix to avoid conflicts
+    const varId = `var-${i + 1000}-${Math.random().toString(36).substr(2, 9)}`;
     return `
       <div class="var-container">
         <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
