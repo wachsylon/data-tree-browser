@@ -921,7 +921,7 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  const hasCoords = coordItems.length > 0;
+  const hasCoords = coords.length > 0;
   sections.push(`
   <div class="section">
     <details ${hasCoords?"":"open"}>
@@ -950,7 +950,7 @@ function renderGroupLikeXarray(tree, grpNode) {
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
-  const hasDataItems = dataItems.length >0;
+  const hasDataItems = dataVars.length >0;
   sections.push(`
   <div class="section">
     <details ${hasDataItems?"":"open"}>

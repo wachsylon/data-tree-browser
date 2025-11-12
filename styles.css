@@ -41,6 +41,7 @@ body {
 .slide {
   width: min(900px, 92vw);
   min-height: 320px;
+  height: auto;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
