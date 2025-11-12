@@ -119,6 +119,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   margin-left: auto;
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .var-actions .btn-icon {
@@ -130,7 +131,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   color: #6b7280;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
 }
 
 .var-actions .btn-icon:hover {
@@ -144,16 +147,39 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   opacity: 0.8;
 }
 
+/* Container for variable line and its details */
+.var-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 /* Style for expanded attribute/chunk details */
 .var-details {
-  grid-column: 1 / -1;
+  width: 100%;
   background: white;
-  margin: 4px -8px -4px -8px;
-  padding: 8px 12px;
+  margin: 0;
+  padding: 8px 12px 8px 12px;
   border-top: 1px solid #e9ecef;
   font-size: 13px;
   color: #495057;
-  border-radius: 0 0 4px 4px;
+  box-sizing: border-box;
+}
+
+/* Animation for expanding/collapsing */
+.var-details[hidden] {
+  display: none;
+}
+
+.var-details-content {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+/* Ensure the variable line takes full width */
+.varline {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Adjust the codeblock to be full width */

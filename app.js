@@ -513,6 +513,19 @@ function escapeHtml(v) {
     .replaceAll('"', "&quot;");
 }
 
+// Toggle details sections
+function toggleDetails(id) {
+  const details = document.getElementById(id);
+  if (details) {
+    details.hidden = !details.hidden;
+    // Update aria-expanded state for the button
+    const button = details.previousElementSibling;
+    if (button && button.matches('button')) {
+      button.setAttribute('aria-expanded', !details.hidden);
+    }
+  }
+}
+
 // Simple inline SVG icon helper (xarray-like cue colors are set via CSS classes)
 function icon(kind = '') {
   const cls = `icon ${kind}`.trim();
@@ -890,14 +903,17 @@ function renderGroupLikeXarray(tree, grpNode) {
   const coordItems = coords.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
+    const varId = `var-${Date.now()}-${i}`;
     return `
-      <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-        <span class="varname">${escapeHtml(name)}</span>
-        ${formatDimsNames(dims)}
-        ${dtBadge}
-        <div class="var-actions">
-          ${renderVarAttrsDetails(arr)}
-          ${renderVarChunkDetails(arr)}
+      <div class="var-container">
+        <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
+          <span class="varname">${escapeHtml(name)}</span>
+          ${formatDimsNames(dims)}
+          ${dtBadge}
+          <div class="var-actions">
+            ${renderVarAttrsDetails(varId, arr)}
+            ${renderVarChunkDetails(varId, arr)}
+          </div>
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
@@ -914,14 +930,17 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dataItems = dataVars.map(({ name, dims, shape, arr }, i) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
+    const varId = `var-${Date.now()}-${i + 1000}`; // Different prefix to avoid conflicts
     return `
-      <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-        <span class="varname">${escapeHtml(name)}</span>
-        ${formatDimsNames(dims)}
-        ${dtBadge}
-        <div class="var-actions">
-          ${renderVarAttrsDetails(arr)}
-          ${renderVarChunkDetails(arr)}
+      <div class="var-container">
+        <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
+          <span class="varname">${escapeHtml(name)}</span>
+          ${formatDimsNames(dims)}
+          ${dtBadge}
+          <div class="var-actions">
+            ${renderVarAttrsDetails(varId, arr)}
+            ${renderVarChunkDetails(varId, arr)}
+          </div>
         </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
@@ -1014,7 +1033,7 @@ function formatVarAttrsInline(attrs = {}) {
   return parts.length ? `| ${parts.join(" ")}` : "";
 }
 
-function renderVarAttrsDetails(arr) {
+function renderVarAttrsDetails(varId, arr) {
   if (!arr?.attrs) return '';
   const count = Object.keys(arr.attrs).length;
   if (count === 0) return '';
@@ -1027,32 +1046,42 @@ function renderVarAttrsDetails(arr) {
     .join('');
     
   return `
-    <button class="btn-icon" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden; this.setAttribute('aria-expanded', !this.nextElementSibling.hidden === true);">
+    <button class="btn-icon" 
+            aria-label="Toggle attributes"
+            data-target="attrs-${varId}"
+            onclick="toggleDetails('attrs-${varId}')">
       <svg class="icon attr" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
       </svg>
     </button>
-    <div class="var-details" hidden>
-      ${attrsHtml}
+    <div id="attrs-${varId}" class="var-details" hidden>
+      <div class="var-details-content">
+        ${attrsHtml}
+      </div>
     </div>`;
 }
 
-function renderVarChunkDetails(arr) {
+function renderVarChunkDetails(varId, arr) {
   if (!arr?.zarray?.chunks) return '';
   const chunks = Array.isArray(arr.zarray.chunks) ? arr.zarray.chunks : [arr.zarray.chunks];
   if (!chunks || chunks.length === 0) return '';
   
   const chunkStr = chunks.join('×');
   return `
-    <button class="btn-icon" title="Chunks: ${chunkStr}" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden; this.setAttribute('aria-expanded', !this.nextElementSibling.hidden === true);">
+    <button class="btn-icon" 
+            aria-label="Toggle chunk details"
+            data-target="chunks-${varId}"
+            onclick="toggleDetails('chunks-${varId}')">
       <svg class="icon data" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
       </svg>
     </button>
-    <div class="var-details" hidden>
-      <div>Chunks: <span class="value">${chunkStr}</span></div>
-      <div>Shape: <span class="value">${arr.zarray.shape?.join('×') || '?'}</span></div>
-      <div>Compressor: <span class="value">${arr.zarray.compressor?.id || 'none'}</span></div>
+    <div id="chunks-${varId}" class="var-details" hidden>
+      <div class="var-details-content">
+        <div>Chunks: <span class="value">${chunkStr}</span></div>
+        <div>Shape: <span class="value">${arr.zarray.shape?.join('×') || '?'}</span></div>
+        <div>Compressor: <span class="value">${arr.zarray.compressor?.id || 'none'}</span></div>
+      </div>
     </div>`;
 }
 
