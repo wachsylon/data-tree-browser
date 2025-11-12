@@ -89,6 +89,22 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .chunkviz-2d .chunk-row { display: grid; grid-auto-flow: column; gap: 2px; align-items: center; }
 .chunk-cell { width: 8px; height: 8px; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 2px; }
 .varname { font-weight: 600; }
+/* Xarray-like variable line enhancements */
+.varline { padding: 2px 4px; border-radius: 6px; line-height: 1.6; }
+.varline:hover { background: #f3f4f6; }
+.varline .badge { margin-right: 6px; }
+
+/* Icons (inline SVG) */
+.icon { width: 14px; height: 14px; vertical-align: -2px; fill: #6b7280; margin-right: 6px; }
+.icon.dim { fill: #6b7280; }
+.icon.coord { fill: #2563eb; }
+.icon.data { fill: #7c3aed; }
+.icon.group { fill: #10b981; }
+.icon.attr { fill: #f59e0b; }
+
+/* Xarray-like summary banner */
+.xr-summary { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 10px; margin-bottom: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color: #111827; }
+.xr-summary .badge { background: #e5e7eb; color: #374151; border-color: #d1d5db; }
 
 /* Chunk matrix */
 .matrix2x2 { display: grid; grid-template-columns: max-content 1fr 1fr; gap: 6px 12px; align-items: center; }

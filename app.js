@@ -513,6 +513,27 @@ function escapeHtml(v) {
     .replaceAll('"', "&quot;");
 }
 
+// Simple inline SVG icon helper (xarray-like cue colors are set via CSS classes)
+function icon(kind = '') {
+  const cls = `icon ${kind}`.trim();
+  if (kind === 'group') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8a2 2 0 0 1 2 2v3h-9l-2-2H4V6a2 2 0 0 1 2-2h4zm12 7v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9h7l2 2h11z"/></svg>`;
+  }
+  if (kind === 'attr') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>`;
+  }
+  if (kind === 'coord') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>`;
+  }
+  if (kind === 'data') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
+  }
+  if (kind === 'dim') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>`;
+  }
+  return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/></svg>`;
+}
+
 function setActive(path) {
   // Prevent setting arrays as active; keep only groups active
   const node = state.tree?.pathMap.get(path);
@@ -807,20 +828,37 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dimList = Array.from(allDims);
 
   const sections = [];
+  // Xarray-like summary banner
+  const dimSummary = dimList.map((d) => `${d}: ${dimSizes.get(d) ?? '?'}`).join(', ');
+  const nCoords = arrays.filter((a) => {
+    const name = basename(a.path);
+    const shp = Array.isArray(a.zarray?.shape) ? a.zarray.shape : [];
+    const dims = dimsByVar.get(a) || [];
+    return (shp.length === 1 && coordCandidates.has(name)) || (dims.length === 1 && (dims[0] === name || coordCandidates.has(name)));
+  }).length;
+  const nData = arrays.length - nCoords;
+  const sizeHint = '';
+  const summaryHtml = `
+    <div class="xr-summary">
+      &lt;xarray.Dataset&gt; ${sizeHint}
+      Dimensions: (${escapeHtml(dimSummary)}) · Coordinates: ${nCoords} · Data variables: ${nData}
+    </div>
+  `;
+  sections.push(summaryHtml);
   // Dimensions
   const dimRows = dimList.length ? dimList.map((d) => `<div class="label">${escapeHtml(d)}</div><div class="value">${escapeHtml(dimSizes.get(d) ?? "?")}</div>`).join("") : `<div class="small">(none)</div>`;
-  sections.push(`<div class="section"><h3>Dimensions</h3><div class="meta">${dimRows}</div></div>`);
+  sections.push(`<div class="section"><h3>${icon('dim')}Dimensions</h3><div class="meta">${dimRows}</div></div>`);
 
   // Coordinates (collapsible)
   const coordItems = coords.map(({ name, dims, shape, arr }) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtStr = dt ? ` ${escapeHtml(dt)}` : "";
-    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
+    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}">${icon('coord')}<span class=\"badge\">coord</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
   }).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
-        <summary>Coordinates</summary>
+        <summary>${icon('coord')}Coordinates</summary>
         <div class="codeblock">${coordItems}</div>
       </details>
     </div>
@@ -830,12 +868,12 @@ function renderGroupLikeXarray(tree, grpNode) {
   const dataItems = dataVars.map(({ name, dims, shape, arr }) => {
     const dt = prettyDtype(arr?.zarray?.dtype);
     const dtStr = dt ? ` ${escapeHtml(dt)}` : "";
-    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}"><span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
+    return `<div class="varline ${arr.path === state.highlightVarPath ? 'highlight' : ''}">${icon('data')}<span class=\"badge\">data</span> <span class=\"varname\">${escapeHtml(name)}</span> ${formatDimsNames(dims)}${dtStr} ${renderVarAttrsDetails(arr)} ${renderVarChunkDetails(arr)}</div>`;
   }).join("") || `<div class=\"small\">(none)</div>`;
   sections.push(`
     <div class="section">
       <details open>
-        <summary>Data variables</summary>
+        <summary>${icon('data')}Data variables</summary>
         <div class="codeblock">${dataItems}</div>
       </details>
     </div>
@@ -846,8 +884,8 @@ function renderGroupLikeXarray(tree, grpNode) {
     .map((name) => tree.pathMap.get(join(grpNode.path, name)))
     .filter((n) => n && n.type === "group");
   if (groupChildren.length > 0) {
-    const groupItems = groupChildren.map((g) => `<div><span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("");
-    sections.push(`<div class="section"><h3>Groups</h3><div class="codeblock">${groupItems}</div></div>`);
+    const groupItems = groupChildren.map((g) => `<div>${icon('group')}<span class="badge">group</span> <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a></div>`).join("");
+    sections.push(`<div class="section"><h3>${icon('group')}Groups</h3><div class="codeblock">${groupItems}</div></div>`);
   }
 
   // Attributes (collapsible; show even if none) rendered as key=value lines
@@ -857,7 +895,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   sections.push(`
     <div class="section">
       <details>
-        <summary>Attributes</summary>
+        <summary>${icon('attr')}Attributes</summary>
         ${attrsBlock}
       </details>
     </div>
