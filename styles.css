@@ -91,24 +91,16 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .varname { font-weight: 600; }
 /* Xarray-like variable line enhancements */
 .varline { 
-  padding: 4px 8px; 
+  padding: 6px 12px; 
   line-height: 1.6;
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
+  position: relative;
 }
 .varline:nth-child(odd) { background-color: #f8f9fa; }
 .varline:nth-child(even) { background-color: #f1f3f5; }
 .varline:hover { background-color: #e9ecef; }
-
-.varline .badge {
-  font-size: 11px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-  text-transform: none;
-  letter-spacing: 0;
-}
 
 /* Style for data type badges */
 .varline .type-badge {
@@ -122,14 +114,74 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   margin-left: 4px;
 }
 
+/* Variable actions (chunks, attributes) */
+.var-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.var-actions .btn-icon {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.var-actions .btn-icon:hover {
+  background: #e9ecef;
+  color: #1a1a1a;
+}
+
+.var-actions .btn-icon svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+}
+
+/* Style for expanded attribute/chunk details */
+.var-details {
+  grid-column: 1 / -1;
+  background: white;
+  margin: 4px -8px -4px -8px;
+  padding: 8px 12px;
+  border-top: 1px solid #e9ecef;
+  font-size: 13px;
+  color: #495057;
+  border-radius: 0 0 4px 4px;
+}
+
+/* Adjust the codeblock to be full width */
+.codeblock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 /* Icons (inline SVG) */
 .icon { 
-  width: 14px; 
-  height: 14px; 
+  width: 16px; 
+  height: 16px; 
   vertical-align: middle; 
   fill: currentColor;
-  margin-right: 4px;
   flex-shrink: 0;
+  margin-right: 6px;
+}
+
+/* Section headers with icons */
+.section h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 
 /* Badge colors */

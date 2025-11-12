@@ -516,14 +516,17 @@ function escapeHtml(v) {
 // Simple inline SVG icon helper (xarray-like cue colors are set via CSS classes)
 function icon(kind = '') {
   const cls = `icon ${kind}`.trim();
-  // Return badges for group/coord/data types instead of SVG icons
-  if (kind === 'group') return '<span class="badge">group</span>';
-  if (kind === 'coord') return '<span class="badge">coord</span>';
-  if (kind === 'data') return '<span class="badge">data</span>';
-  
-  // Keep SVG icons for other types (dim, attr, etc.)
+  if (kind === 'group') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h8a2 2 0 0 1 2 2v3h-9l-2-2H4V6a2 2 0 0 1 2-2h4zm12 7v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9h7l2 2h11z"/></svg>`;
+  }
   if (kind === 'attr') {
     return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>`;
+  }
+  if (kind === 'coord') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>`;
+  }
+  if (kind === 'data') {
+    return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`;
   }
   if (kind === 'dim') {
     return `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg>`;
@@ -852,12 +855,13 @@ function renderGroupLikeXarray(tree, grpNode) {
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
     return `
       <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-        <span class="badge" data-type="coord">coord</span>
         <span class="varname">${escapeHtml(name)}</span>
         ${formatDimsNames(dims)}
         ${dtBadge}
-        ${renderVarAttrsDetails(arr)}
-        ${renderVarChunkDetails(arr)}
+        <div class="var-actions">
+          ${renderVarAttrsDetails(arr)}
+          ${renderVarChunkDetails(arr)}
+        </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
   sections.push(`
@@ -875,12 +879,13 @@ function renderGroupLikeXarray(tree, grpNode) {
     const dtBadge = dt ? `<span class="type-badge">${escapeHtml(dt)}</span>` : '';
     return `
       <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-        <span class="badge" data-type="data">data</span>
         <span class="varname">${escapeHtml(name)}</span>
         ${formatDimsNames(dims)}
         ${dtBadge}
-        ${renderVarAttrsDetails(arr)}
-        ${renderVarChunkDetails(arr)}
+        <div class="var-actions">
+          ${renderVarAttrsDetails(arr)}
+          ${renderVarChunkDetails(arr)}
+        </div>
       </div>`;
   }).join("") || `<div class="small">(none)</div>`;
   sections.push(`
@@ -899,8 +904,7 @@ function renderGroupLikeXarray(tree, grpNode) {
   if (groupChildren.length > 0) {
     const groupItems = groupChildren.map((g, i) => `
       <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-        <span class="badge" data-type="group">group</span>
-        <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${escapeHtml(basename(g.path) || "/")}</a>
+        <a href="#" data-path="${escapeHtml(g.path)}" class="navlink">${icon('group')}${escapeHtml(basename(g.path) || "/")}</a>
       </div>`).join("");
     sections.push(`<div class="section"><h3>${icon('group')}Groups</h3><div class="codeblock">${groupItems}</div></div>`);
   }
@@ -974,23 +978,45 @@ function formatVarAttrsInline(attrs = {}) {
 }
 
 function renderVarAttrsDetails(arr) {
-  if (!arr || typeof arr !== "object") return "";
-  const attrs = arr.attrs && typeof arr.attrs === "object" ? arr.attrs : {};
-  if (!Object.keys(attrs).length) return "";
-  const rows = Object.entries(attrs).map(([k, v]) => {
-    let val;
-    if (v == null) val = "null";
-    else if (typeof v === "object") val = JSON.stringify(v);
-    else val = String(v);
-    return `<div class="label">${escapeHtml(k)}</div><div class="value">${escapeHtml(val)}</div>`;
-  }).join("");
-  return `<details class="var-attrs"><summary>Attributes</summary><div class="meta small">${rows}</div></details>`;
+  if (!arr?.attrs) return '';
+  const count = Object.keys(arr.attrs).length;
+  if (count === 0) return '';
+  
+  const attrsHtml = Object.entries(arr.attrs)
+    .map(([k, v]) => {
+      const val = typeof v === 'string' ? `"${escapeHtml(v)}"` : JSON.stringify(v);
+      return `<div>${escapeHtml(k)}: <span class="value">${val}</span></div>`;
+    })
+    .join('');
+    
+  return `
+    <button class="btn-icon" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden; this.setAttribute('aria-expanded', !this.nextElementSibling.hidden === true);">
+      <svg class="icon attr" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+      </svg>
+    </button>
+    <div class="var-details" hidden>
+      ${attrsHtml}
+    </div>`;
 }
 
 function renderVarChunkDetails(arr) {
-  const matrix = renderChunkMatrix(arr);
-  if (!matrix) return "";
-  return `<details class="var-chunks"><summary>Chunks</summary>${matrix}</details>`;
+  if (!arr?.zarray?.chunks) return '';
+  const chunks = Array.isArray(arr.zarray.chunks) ? arr.zarray.chunks : [arr.zarray.chunks];
+  if (!chunks || chunks.length === 0) return '';
+  
+  const chunkStr = chunks.join('×');
+  return `
+    <button class="btn-icon" title="Chunks: ${chunkStr}" onclick="this.nextElementSibling.hidden = !this.nextElementSibling.hidden; this.setAttribute('aria-expanded', !this.nextElementSibling.hidden === true);">
+      <svg class="icon data" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
+      </svg>
+    </button>
+    <div class="var-details" hidden>
+      <div>Chunks: <span class="value">${chunkStr}</span></div>
+      <div>Shape: <span class="value">${arr.zarray.shape?.join('×') || '?'}</span></div>
+      <div>Compressor: <span class="value">${arr.zarray.compressor?.id || 'none'}</span></div>
+    </div>`;
 }
 
 function renderKeyValueMeta(obj = {}) {
