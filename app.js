@@ -526,18 +526,37 @@ async function loadTimeArrayValues(baseUrl, path) {
     const arrayUrl = `${normalizedBase}${path}`;
     
     // Import Zarrita dynamically
-    const { open } = await import("https://esm.sh/zarrita@0.4?bundle");
-    const store = open({ url: arrayUrl });
+    const zarrita = await import("https://esm.sh/zarrita@0.4.0");
     
-    // Get array metadata
-    const arr = await store.getArray();
+    // Open the store and get the array
+    const store = zarrita.open({ url: arrayUrl });
+    const arr = await zarrita.Array.open(store);
+    
+    // Get the length of the first dimension
     const length = arr.shape[0];
+    if (length === 0) {
+      return { first: null, last: null };
+    }
     
     // Load first and last values
     const firstValue = await arr.get([0]);
     const lastValue = await arr.get([length - 1]);
     
-    return { first: firstValue, last: lastValue };
+    // Format date if it's a datetime64 value
+    const formatIfDate = (value) => {
+      if (value instanceof Date) {
+        return value.toISOString();
+      } else if (typeof value === 'number' && arr.dtype.startsWith('datetime64')) {
+        // Handle numeric timestamps (common in netCDF/Zarr)
+        return new Date(value).toISOString();
+      }
+      return value;
+    };
+    
+    return { 
+      first: formatIfDate(firstValue), 
+      last: formatIfDate(lastValue) 
+    };
   } catch (error) {
     console.error('Error loading time array:', error);
     return { error: error.message };
