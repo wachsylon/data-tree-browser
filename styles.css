@@ -177,8 +177,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .var-actions {
   margin-left: auto;
   display: flex;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
+  align-self: center;
 }
 
 .var-actions .btn-icon {
@@ -216,28 +217,30 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 /* Style for expanded attribute/chunk details */
 .var-details {
   width: 100%;
-  background: white;
+  background: transparent;
   margin: 0;
-  padding: 8px 12px 8px 36px; /* Add left padding to align with content */
-  border-top: 1px solid #e9ecef;
-  font-size: 13px;
-  color: #495057;
+  padding: 0 10px 0 30px;
   box-sizing: border-box;
-  display: none; /* Start hidden, will be toggled by JS */
+  border: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 /* Show details when not hidden */
 .var-details:not([hidden]) {
-  display: block;
+  display: flex;
 }
 
-/* Keep the background color consistent with the parent row */
-.var-container:nth-child(odd) .var-details {
-  background-color: #f8f9fa;
-}
-
-.var-container:nth-child(even) .var-details {
-  background-color: #f1f3f5;
+/* Style for details content */
+.var-details-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0;
+  width: 100%;
 }
 
 .var-details-content {
@@ -411,6 +414,20 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   .hints { font-size: 11px; gap: 8px; }
   .controls { flex-direction: column; align-items: stretch; }
   .controls button { width: 100%; }
+}
+
+/* Make var-details stack vertically on small screens */
+@media (max-width: 768px) {
+  .var-details {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 20px;
+  }
+  
+  .var-details-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 600px) {
