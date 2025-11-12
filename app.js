@@ -738,7 +738,7 @@ function renderTreeNode(tree, path) {
   if (hasGroupKids) {
     const open = isSubtreeOpen(node.path, state.activePath);
     li += `<details ${open ? 'open' : ''}>`;
-    li += `<summary><a href="#" data-path="${escapeHtml(node.path)}"><span class=\"badge\">grp</span>${escapeHtml(label)}</a></summary>`;
+    li += `<summary><a href="#" data-path="${escapeHtml(node.path)}">${escapeHtml(label)}</a></summary>`;
     const kids = node.children.map((name) => {
       const childPath = join(node.path, name);
       const child = tree.pathMap.get(childPath);
@@ -747,7 +747,7 @@ function renderTreeNode(tree, path) {
     if (kids) li += `<ul>${kids}</ul>`;
     li += `</details>`;
   } else {
-    li += `<a href="#" data-path="${escapeHtml(node.path)}"><span class=\"badge\">grp</span>${escapeHtml(label)}</a>`;
+    li += `<a href="#" data-path="${escapeHtml(node.path)}">${escapeHtml(label)}</a>`;
   }
   li += `</li>`;
   return li;
