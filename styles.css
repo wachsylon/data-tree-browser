@@ -377,10 +377,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .var-actions {
   display: flex;
   order: -1;
-  margin-left: "auto";
+  margin-right: "auto";
   gap: 4px;
   flex-shrink: 0; /* Prevent shrinking */
-  justify-content: flex-end; /* Align items to the right */
   align-items: left; /* Center items vertically */
 }
 
