@@ -303,8 +303,8 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   cursor: pointer;
   color: #6b7280;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  align-items: right;
+  justify-content: right;
   width: 24px;
   height: 24px;
 }
