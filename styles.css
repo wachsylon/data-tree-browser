@@ -346,6 +346,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 /* Ensure var-info stays consistently positioned */
 .var-info {
   display: flex;
+  flex-direction: column;
   align-items: center;
   flex: 1;
   min-width: 0; /* Allow it to shrink if needed */
