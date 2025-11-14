@@ -1095,18 +1095,16 @@ function renderGroupLikeXarray(tree, grpNode) {
     return `
       <div class="var-container">
         <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-          <div class="var-header">
-            <div class="var-info">
-              <span class="var-header-text">
-                <span class="var-name">${escapeHtml(name)}</span>
-                <span class="var-dims">${formatDimsNames(dims)}</span>
-                ${dtBadge}
-                <span class="var-actions">
-                  ${renderVarAttrsDetails(varId, arr)}
-                  ${renderVarChunkDetails(varId, arr)}
-                </span>
-              </span>
-            </div>
+          <div class="var-info">
+            <span class="var-header-text">
+              <span class="var-name">${escapeHtml(name)}</span>
+              <span class="var-dims">${formatDimsNames(dims)}</span>
+              ${dtBadge}
+            </span>
+            <span class="var-actions">
+              ${renderVarAttrsDetails(varId, arr)}
+              ${renderVarChunkDetails(varId, arr)}
+            </span>
           </div>
           ${timeButton ? `<div class="time-array-container">${timeButton}</div>` : ''}
         </div>
@@ -1131,12 +1129,16 @@ function renderGroupLikeXarray(tree, grpNode) {
     return `
       <div class="var-container">
         <div class="varline ${i % 2 === 0 ? 'even' : 'odd'}">
-          <span class="varname">${escapeHtml(name)}</span>
-          ${formatDimsNames(dims)}
-          ${dtBadge}
-          <div class="var-actions">
-            ${renderVarAttrsDetails(varId, arr)}
-            ${renderVarChunkDetails(varId, arr)}
+          <div class="var-info">
+            <span class="var-header-text">
+              <span class="varname">${escapeHtml(name)}</span>
+              ${formatDimsNames(dims)}
+              ${dtBadge}
+            </span>
+            <div class="var-actions">
+              ${renderVarAttrsDetails(varId, arr)}
+              ${renderVarChunkDetails(varId, arr)}
+            </div>
           </div>
         </div>
       </div>`;
