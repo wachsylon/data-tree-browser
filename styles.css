@@ -376,11 +376,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 /* Ensure buttons and actions stay on the right */
 .var-actions {
   display: flex;
-  order: -1;
-  margin-right: "auto";
   gap: 4px;
   flex-shrink: 0; /* Prevent shrinking */
-  align-items: left; /* Center items vertically */
+  align-items: flex-start; /* Center items vertically */
 }
 
 .var-header {
