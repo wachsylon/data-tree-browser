@@ -326,18 +326,45 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   flex-direction: column;
   width: 100%;
   margin-bottom: 4px;
+  position: relative; /* For proper positioning context */
 }
 
-/* Style for the variable line */
+/* Style for the variable line flex direction column*/
 .varline {
   display: flex;
-  flex-direction: column;
   padding: 8px 10px;
   border-radius: 4px;
   font-family: 'Fira Code', 'Roboto Mono', monospace;
   width: 100%;
   box-sizing: border-box;
   gap: 6px;
+  align-items: center; /* Center items vertically */
+  min-height: 40px; /* Ensure consistent height */
+}
+
+/* Ensure var-info stays consistently positioned */
+.var-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0; /* Allow it to shrink if needed */
+}
+
+/* Keep the header text properly aligned */
+.var-header-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0; /* Allow text truncation if needed */
+}
+
+/* Ensure buttons and actions stay on the right */
+.var-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0; /* Prevent shrinking */
 }
 
 .var-header {
