@@ -145,7 +145,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .chunkviz-2d { display: grid; gap: 2px; }
 .chunkviz-2d .chunk-row { display: grid; grid-auto-flow: column; gap: 2px; align-items: center; }
 .chunk-cell { width: 8px; height: 8px; background: #dbeafe; border: 1px solid #93c5fd; border-radius: 2px; }
-.varname { font-weight: 600; }
+.varname { font-weight: 600; margin-right: 6px; }
 /* Xarray-like variable line enhancements */
 .varline { 
   padding: 6px 12px; 
@@ -154,6 +154,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   align-items: center;
   gap: 8px;
   position: relative;
+  flex-wrap: wrap;
 }
 
 /* Ensure alternating colors work with the container structure */
@@ -172,7 +173,8 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  justify-content: space-between;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
 }
 
 .var-header-text > *:not(.var-actions) {
@@ -203,6 +205,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   font-family: 'Fira Code', 'Roboto Mono', monospace;
   background: #e9ecef;
   color: #495057;
+  white-space: nowrap;
+  margin-right: 6px;
+  flex-shrink: 0;
   font-size: 0.8em;
   padding: 1px 4px;
   border-radius: 3px;
