@@ -391,7 +391,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   width: 100%;
   background: #f8f9fa;
   margin: 0;
-  padding: 8px 10px 8px 30px;
+  padding: 8px 10px 8px 10px; /* Reduced left padding for better alignment */
   box-sizing: border-box;
   border-left: 2px solid #e5e7eb;
   border-right: 2px solid #e5e7eb;
@@ -399,7 +399,8 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   border-radius: 0 0 4px 4px;
   display: none;
   margin-top: -4px; /* Pull up to connect with the row above */
-  align-items: left;
+  text-align: left;
+  text-indent: 0;
 }
 
 /* Show details when not hidden */
@@ -411,6 +412,9 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .var-details-content {
   display: block;
   width: 100%;
+  text-align: left;
+  padding-left: 0;
+  margin-left: 0;
 }
 
 /* Adjust for even/odd rows */
