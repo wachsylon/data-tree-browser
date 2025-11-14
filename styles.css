@@ -495,12 +495,18 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 }
 
 .agg-panel-container.collapsed {
-  opacity: 0;
-  transform: translateX(20px);
-  pointer-events: none;
+  max-width: 0;
+  margin-left: 0;
+  overflow: visible; /* Allow the toggle button to remain visible */
+  position: relative; /* Ensure proper positioning context */
 }
 
-.agg-panel-container.collapsed + .agg-panel-toggle svg {
+.agg-panel-container.collapsed .agg-panel-toggle {
+  left: 12px; /* Position it to stay visible */
+  transform: translateX(0);
+}
+
+.agg-panel-container.collapsed .agg-panel-toggle svg {
   transform: rotate(180deg);
 }
 
