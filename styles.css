@@ -399,6 +399,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   border-radius: 0 0 4px 4px;
   display: none;
   margin-top: -4px; /* Pull up to connect with the row above */
+  align-items: left;
 }
 
 /* Show details when not hidden */
