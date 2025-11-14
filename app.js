@@ -1150,6 +1150,22 @@ function renderGroupLikeXarray(tree, grpNode) {
               <span class="varname">${escapeHtml(name)}</span>
               ${formatDimsNames(dims)}
               ${dtBadge}
+              <button class="btn-icon" 
+                aria-label="Toggle attributes"
+                data-target="attrs-${varId}"
+                onclick="toggleDetails('attrs-${varId}')">
+                <svg class="icon attr" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
+                </svg>
+              </button>
+              <button class="btn-icon" 
+                      aria-label="Toggle chunk details"
+                      data-target="chunks-${varId}"
+                      onclick="toggleDetails('chunks-${varId}')">
+                <svg class="icon data" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>   
             </span>
             <div class="var-actions">
               ${renderVarAttrsDetails(varId, arr)}
