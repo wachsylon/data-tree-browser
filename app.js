@@ -1100,7 +1100,7 @@ function renderGroupLikeXarray(tree, grpNode) {
               <span class="var-name">${escapeHtml(name)}</span>
               <span class="var-dims">${formatDimsNames(dims)}</span>
               ${dtBadge}
-              <div class="btn-icon">
+              <span class="btn-icon">
                 <button class="btn-icon-single" 
                   aria-label="Toggle attributes"
                   data-target="attrs-${varId}"
@@ -1117,7 +1117,7 @@ function renderGroupLikeXarray(tree, grpNode) {
                     <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
                   </svg>
                 </button>              
-              </div>
+              </span>
             </span>
             <span class="var-actions">
               ${renderVarAttrsDetails(varId, arr)}
@@ -1152,7 +1152,7 @@ function renderGroupLikeXarray(tree, grpNode) {
               <span class="varname">${escapeHtml(name)}</span>
               ${formatDimsNames(dims)}
               ${dtBadge}
-              <div class="btn-icon">
+              <span class="btn-icon">
                 <button class="btn-icon-single" 
                   aria-label="Toggle attributes"
                   data-target="attrs-${varId}"
@@ -1169,7 +1169,7 @@ function renderGroupLikeXarray(tree, grpNode) {
                     <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
                   </svg>
                 </button>   
-              </div>
+              </span>
             </span>
             <div class="var-actions">
               ${renderVarAttrsDetails(varId, arr)}
