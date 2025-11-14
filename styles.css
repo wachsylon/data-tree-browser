@@ -350,7 +350,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   width: 100%;
   box-sizing: border-box;
   gap: 6px;
-  align-items: center; /* Center items vertically */
+  align-items: flex-start; 
   min-height: 40px; /* Ensure consistent height */
 }
 
@@ -377,8 +377,12 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .var-actions {
   display: flex;
   gap: 4px;
+  width: 100%;
   flex-shrink: 0; /* Prevent shrinking */
-  align-items: flex-start; /* Center items vertically */
+  justify-content: flex-start; /* Align content to the left */
+  padding-left: 0; /* Remove any left padding */
+  margin-left: 0; /* Remove any left margin */
+  margin-top: 4px; /* Add some space above the actions */
 }
 
 .var-header {
