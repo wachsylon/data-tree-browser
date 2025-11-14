@@ -295,6 +295,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   display: inline-flex;
   gap: 4px; /* Space between buttons */
   align-items: center;
+  margin-left: auto;
 }
 
 /* Individual icon button */
