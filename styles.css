@@ -358,12 +358,14 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   gap: 6px;
   flex-wrap: wrap;
   min-width: 0; /* Allow text truncation if needed */
+  flex: 1;
 }
 
 /* Ensure buttons and actions stay on the right */
 .var-actions {
-  margin-left: auto;
   display: flex;
+  order: -1;
+  margin-right: 8px;
   gap: 4px;
   flex-shrink: 0; /* Prevent shrinking */
   justify-content: flex-end; /* Align items to the right */
