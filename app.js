@@ -1108,6 +1108,14 @@ function renderGroupLikeXarray(tree, grpNode) {
                   <path d="M3 7a2 2 0 0 1 2-2h6l10 10-6 6L5 11V7zm4 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/>
                 </svg>
               </button>
+              <button class="btn-icon" 
+                      aria-label="Toggle chunk details"
+                      data-target="chunks-${varId}"
+                      onclick="toggleDetails('chunks-${varId}')">
+                <svg class="icon data" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>              
             </span>
             <span class="var-actions">
               ${renderVarAttrsDetails(varId, arr)}
@@ -1267,14 +1275,6 @@ function renderVarChunkDetails(varId, arr) {
   
   const chunkStr = chunks.join('×');
   return `
-    <button class="btn-icon" 
-            aria-label="Toggle chunk details"
-            data-target="chunks-${varId}"
-            onclick="toggleDetails('chunks-${varId}')">
-      <svg class="icon data" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M4 6c0-2.21 3.58-4 8-4s8 1.79 8 4-3.58 4-8 4-8-1.79-8-4zm0 6c0 2.21 3.58 4 8 4s8-1.79 8-4m-16 6c0 2.21 3.58 4 8 4s8-1.79 8-4" fill="none" stroke="currentColor" stroke-width="2"/>
-      </svg>
-    </button>
     <div id="chunks-${varId}" class="var-details" hidden>
       <div class="var-details-content">
         <div>Chunks: <span class="value">${chunkStr}</span></div>

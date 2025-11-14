@@ -494,18 +494,26 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   transition: transform 0.3s ease;
 }
 
-.agg-panel-container.collapsed {
-  max-width: 0;
-  margin-left: 0;
-  overflow: visible; /* Allow the toggle button to remain visible */
-  position: relative; /* Ensure proper positioning context */
+/* Hide the panel content when collapsed */
+.agg-panel-container.collapsed #aggPanel {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
 }
 
+/* Keep the toggle button visible and properly positioned */
 .agg-panel-container.collapsed .agg-panel-toggle {
-  left: 12px; /* Position it to stay visible */
+  position: absolute;
+  left: 12px;
   transform: translateX(0);
+  z-index: 10; /* Ensure it stays above other content */
 }
 
+/* Adjust the arrow direction when collapsed */
 .agg-panel-container.collapsed .agg-panel-toggle svg {
   transform: rotate(180deg);
 }
