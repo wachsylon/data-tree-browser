@@ -342,6 +342,7 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 
 /* Style for the variable line flex direction column*/
 .varline {
+  flex-wrap: wrap;
   display: flex;
   padding: 8px 10px;
   border-radius: 4px;
@@ -376,11 +377,11 @@ details summary::-webkit-details-marker { margin-right: 6px; }
 .var-actions {
   display: flex;
   order: -1;
-  margin-right: 8px;
+  margin-left: "auto";
   gap: 4px;
   flex-shrink: 0; /* Prevent shrinking */
   justify-content: flex-end; /* Align items to the right */
-  align-items: center; /* Center items vertically */
+  align-items: left; /* Center items vertically */
 }
 
 .var-header {
