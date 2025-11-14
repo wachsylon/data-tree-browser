@@ -226,11 +226,6 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   flex-shrink: 0;
 }
 
-/* Style for active button when details are shown */
-.var-actions .btn-icon.active {
-  background-color: #e9ecef;
-  color: #111827;
-}
 
 /* Time array button styles */
 .time-array-container {
@@ -295,7 +290,15 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   }
 }
 
+/* Container for icon buttons */
 .btn-icon {
+  display: inline-flex;
+  gap: 4px; /* Space between buttons */
+  align-items: center;
+}
+
+/* Individual icon button */
+.btn-icon-single {
   background: none;
   border: none;
   padding: 2px 6px;
@@ -307,18 +310,24 @@ details summary::-webkit-details-marker { margin-right: 6px; }
   justify-content: center;
   width: 24px;
   height: 24px;
-  margin-left: auto; /* This pushes the button to the right */
+  margin: 0; /* Reset any margins */
 }
 
-.btn-icon:hover {
+.btn-icon-single:hover {
   background: #e9ecef;
   color: #1a1a1a;
 }
 
-.btn-icon svg {
+.btn-icon-single svg {
   width: 14px;
   height: 14px;
   opacity: 0.8;
+}
+
+/* Active state */
+.btn-icon-single.active {
+  background-color: #e9ecef;
+  color: #111827;
 }
 
 /* Container for variable line and its details */
